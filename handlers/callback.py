@@ -2,8 +2,10 @@ import logging
 
 from handlers.keyboards import keyboard_for_briefings, \
     keyboard_for_questions, keyboard_for_direction, keyboard_for_sub_direction, keyboard_enter_menu_for_clients, \
-    keyboard_for_answer
-from services.db_data import get_data_briefings, get_directions_from_db, get_question_and_answers_from_db
+    keyboard_for_answer, keyboard_for_change_answer
+from services.db_data import get_data_briefings, get_directions_from_db, get_question_and_answers_from_db, \
+    get_user_answer, get_user_data_from_db
+from services.redis_db import set_question_id_in_redis, get_question_id_from_redis
 from services.states import MyStates
 from handlers.text_messages import TEXT_MESSAGES
 
@@ -24,9 +26,8 @@ def callback_formation_of_the_cp(call, bot):
 
 
 def callback_chat_with_operator(call, bot):
-    pass
     # bot.delete_message(call.message.chat.id, call.message.id)
-    # bot.send_message(call.message.chat.id, TEXT_MESSAGES['menu'], reply_markup=keyboard_for_scenario())
+    bot.send_message(call.message.chat.id, TEXT_MESSAGES['chat_with_operator'])
     # logger.info(f'Состояние пользователя - {bot.get_state(call.message.chat.id, call.from_user.id)}')
 
 
@@ -69,7 +70,7 @@ def callback_for_section(call, bot):
     path = call.data
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                           text=TEXT_MESSAGES['menu'],
-                          reply_markup=keyboard_for_questions(path))
+                          reply_markup=keyboard_for_questions(call.from_user.id, path))
 
 
 def callback_section_from_subcategory(call, bot):
@@ -77,33 +78,52 @@ def callback_section_from_subcategory(call, bot):
     path = call.data
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                           text=TEXT_MESSAGES['menu'],
-                          reply_markup=keyboard_for_questions(path))
+                          reply_markup=keyboard_for_questions(call.from_user.id, path))
 
 
 def callback_cancel_from_inline_menu(call, bot):
     logger.info(f'callback_cancel_from_inline_menu: пришел callback: {call.data}')
+    user_data = get_user_data_from_db(call.from_user.id)
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                          text=TEXT_MESSAGES['start'].format(username=call.from_user.first_name,
-                                                                    user_id=call.from_user.id),
+                          text=TEXT_MESSAGES['start'].format(username=user_data[0][2],
+                                                             company=user_data[0][4]),
                           reply_markup=keyboard_enter_menu_for_clients())
+
+
+def callback_for_change_answer(call, bot):
+    logger.info(f'callback_for_change_answer: пришел callback: {call.data}')
+    bot.delete_message(call.message.chat.id, call.message.id)
+    bot.set_state(call.from_user.id, MyStates.answer_to_question, call.from_user.id)
+    question_id = get_question_id_from_redis(call.from_user.id)
+    question, answers = get_question_and_answers_from_db(question_id)
+    bot.send_message(call.message.chat.id, f'❓\n\n{question}?\n\nНапишите ответ и нажмите "Отправить ответ"',
+                     reply_markup=keyboard_for_answer(answers))
 
 
 def callback_for_questions(call, bot):
     logger.info(f'callback_for_questions: пришел callback: {call.data}')
-    id_question = call.data.split('_')[1]
+    question_id = call.data.split('_')[1]
+    set_question_id_in_redis(user=call.from_user.id, question_id=question_id)
+    question, answers = get_question_and_answers_from_db(question_id)
+    user_answer = get_user_answer(call.from_user.id, question_id)
+    if bool(user_answer):
+        user_answer = user_answer[0][0]
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=f'❓\n\n{question}?\n\nВаше ответ:{user_answer}',
+                              reply_markup=keyboard_for_change_answer())
+        return
     bot.set_state(call.from_user.id, MyStates.answer_to_question, call.from_user.id)
-    question, answers = get_question_and_answers_from_db(id_question)
-    bot.send_message(call.message.chat.id, f'Вы зарегистрированы, ответьте на вопрос:\n\n{question}?', reply_markup=keyboard_for_answer(answers))
+    bot.delete_message(call.message.chat.id, call.message.id)
+    bot.send_message(call.message.chat.id, f'❓\n\n{question}?\n\nНапишите ответ и нажмите "Отправить ответ"',
+                     reply_markup=keyboard_for_answer(answers))
 
 
 def callback_for_registration(call, bot):
     logger.info(f'callback_for_registration: пришел callback: {call.data}')
-    id_question = call.data.split('_')[1]
+    question_id = call.data.split('_')[1]
+    set_question_id_in_redis(user=call.from_user.id, question_id=question_id)
     bot.set_state(call.from_user.id, MyStates.name, call.from_user.id)
-    bot.add_data(call.from_user.id, call.message.chat.id, id_question=id_question)
+    bot.add_data(call.from_user.id, call.message.chat.id, id_question=question_id)
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                          text='Для того, чтобы ответить на вопросы вы должны указать:\nВаше имя\nТелефон\nКомпанию.'
-                               '\n\nНапишите пожалуйста ваше имя:\n\n/cancel - отменить')
+                          text='Укажите пожалуйста ваше имя:\n\n/cancel - отменить')
     logger.info(f'Состояние пользователя - {bot.get_state(call.message.chat.id, call.from_user.id)}')
-
-

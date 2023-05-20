@@ -1,9 +1,12 @@
 import logging
 
 from handlers.keyboards import remove_keyboard, \
-    keyboard_send_phone, keyboard_for_answer, keyboard_for_briefings
+    keyboard_send_phone, keyboard_for_answer, keyboard_for_briefings, keyboard_enter_menu_for_clients, \
+    keyboard_for_questions
+from handlers.text_messages import TEXT_MESSAGES
 from services.db_data import add_users_data_to_db, get_question_and_answers_from_db, add_user_answers_to_db
-from services.redis_db import add_answers_to_list, get_user_answers, delete_user_answers
+from services.redis_db import add_answers_to_list, get_user_answers, \
+    get_question_id_from_redis, delete_user_answers_from_redis, get_keyboard_for_questions_from_redis
 from services.states import MyStates
 
 logger = logging.getLogger(__name__)
@@ -36,34 +39,29 @@ def get_user_company(message, bot):
         logger.info(f'Данные, которые ввел пользователь: {data}')
         name = data['name']
         phone = data['phone']
-        id_question = data['id_question']
         add_users_data_to_db(user_id, name, phone, company)
-    question, answers = get_question_and_answers_from_db(id_question)
-    bot.send_message(message.chat.id, f'Вы зарегистрированы, ответьте на вопрос:\n\n{question}?', reply_markup=keyboard_for_answer(answers))
-    bot.set_state(message.chat.id, MyStates.answer_to_question, message.from_user.id)
+    bot.delete_state(message.from_user.id, message.chat.id)
+    bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=name,
+                                                                    company=message.text),
+                     reply_markup=keyboard_enter_menu_for_clients())
     logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
 
 def get_answer_from_user(message, bot):
     add_answers_to_list(client_id=message.from_user.id, answer=message.text)
-    bot.send_message(message.chat.id, f'Ваш ответ принят!')
+    bot.send_message(message.chat.id, f'Ответ принят, еще ?')
 
 
 def send_user_answers_to_db(message, bot):
     """ Выход из state вопроса и отправка ответов в базу данных"""
-    answers = get_user_answers(user=message.from_user.id)
-    add_user_answers_to_db()
-
-
-
-
-
-
-
-    delete_user_answers(user=message.from_user.id)
+    text_answers = "|".join(get_user_answers(user=message.from_user.id))
+    question_id = get_question_id_from_redis(user=message.from_user.id)
+    add_user_answers_to_db(user_id=message.from_user.id, question_id=question_id, user_response=text_answers)
+    delete_user_answers_from_redis(user=message.from_user.id)
     bot.delete_state(message.from_user.id, message.chat.id)
-    remove_keyboard(message, bot, 'Ваш ответ принят')
-    bot.send_message(message.chat.id, 'Выберите направление:', reply_markup=keyboard_for_briefings())
+    remove_keyboard(message, bot, 'Ваш ответ получен!')
+    path = get_keyboard_for_questions_from_redis(message.from_user.id)
+    bot.send_message(message.chat.id, 'Выберите вопрос:', reply_markup=keyboard_for_questions(message.from_user.id, path=path))
 
 
 def phone_incorrect(message, bot):

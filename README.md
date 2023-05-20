@@ -1,4 +1,4 @@
-# telegram_bot_for_university
+# telegram_bot_for_pr_company
 
 
 cat create_db.sql | sqlite3 database.db

@@ -9,9 +9,8 @@ from telebot.storage import StateRedisStorage
 
 from config import TELEGRAM_BOT_API_TOKEN, WEBHOOK_URL_PATH
 from handlers import callback
-from handlers.administrator_function import check_password_and_add_admin_to_db
-from handlers.commands import start, info, \
-    get_excel_and_send_to_user, delete_state_
+from handlers.commands import start, \
+     delete_state_, start_unauthorized
 from handlers.get_info_from_user import get_user_name, get_user_phone, phone_incorrect, get_user_company, \
     get_answer_from_user, send_user_answers_to_db
 from handlers.send_data import send_users_data
@@ -19,7 +18,7 @@ from handlers.send_data import send_users_data
 from services.db_data import get_data_briefings
 from services.states import MyStates
 from services.filters import CheckPhoneNumber, CheckConsent, \
-    ContactForm, CheckAnswer, CheckFile, \
+    ContactForm, CheckFile, \
     CheckUserRegistration, CheckPathToSection, CheckPathToSectionWithoutSubDirectory, \
     CheckPathToSectionWithSubDirectory, FinishPoll
 from handlers import dialog_with_operator
@@ -39,7 +38,6 @@ FILTERS = (custom_filters.StateFilter(bot),
            CheckPhoneNumber(),
            ContactForm(),
            CheckConsent(),
-           CheckAnswer(),
            CheckFile(),
            CheckUserRegistration(),
            CheckPathToSection(),
@@ -47,14 +45,6 @@ FILTERS = (custom_filters.StateFilter(bot),
            CheckPathToSectionWithoutSubDirectory(),
            FinishPoll(),
            )
-
-# Function for commands
-COMMAND_HANDLERS = {
-    "start": start,
-    "info": info,
-    "get_excel": get_excel_and_send_to_user,
-    "cancel": delete_state_,
-}
 
 CALL_BACKS_FOR_BRIEFINGS = ['marketing', 'studio', 'creative', 'pr', 'Стратегия', 'research', 'subscription', 'web',
                             'sound', 'video', 'design', 'special_project', 'conception', 'content', 'form_style',
@@ -67,15 +57,14 @@ SUB_DIRECTIONS = set(i[2] for i in get_data_briefings() if type(i[2]) == str)
 SECTIONS = set(i[3] for i in get_data_briefings())
 
 
-
-
 def register_functions_for_bot():
     """Регистрация команд, фильтров, состояний и функций обратного вызова для Телеграм-бота"""
 
     """   Регистрация команд telegram бота """
 
-    for command_name, command_handler in COMMAND_HANDLERS.items():
-        bot.register_message_handler(commands=[command_name], callback=command_handler, pass_bot=True)
+    bot.register_message_handler(commands=['start'], callback=start, pass_bot=True, check_user_registration=True)
+    bot.register_message_handler(commands=['start'], callback=start_unauthorized, pass_bot=True, check_user_registration=False)
+
     bot.register_message_handler(state="*", callback=delete_state_, commands=['cancel'], pass_bot=True)
 
     """   Добавление фильтров сообщений   """
@@ -86,10 +75,14 @@ def register_functions_for_bot():
     """   Регистрация состояний пользователя   """
 
     bot.register_message_handler(state="*", text=['Отменить'], callback=delete_state_, pass_bot=True)
+    bot.register_message_handler(state="*", text=['К вопросам'], callback=delete_state_, pass_bot=True)
 
-    bot.register_message_handler(state=MyStates.request, callback=dialog_with_operator.send_request_to_operator, pass_bot=True)
-    bot.register_message_handler(state=MyStates.dialogue_with_operator, callback=dialog_with_operator.send_message_to_operator, pass_bot=True)
-    bot.register_message_handler(state=MyStates.dialogue_with_client, callback=dialog_with_operator.send_message_to_client, pass_bot=True)
+    bot.register_message_handler(state=MyStates.request, callback=dialog_with_operator.send_request_to_operator,
+                                 pass_bot=True)
+    bot.register_message_handler(state=MyStates.dialogue_with_operator,
+                                 callback=dialog_with_operator.send_message_to_operator, pass_bot=True)
+    bot.register_message_handler(state=MyStates.dialogue_with_client,
+                                 callback=dialog_with_operator.send_message_to_client, pass_bot=True)
 
     bot.register_message_handler(state=MyStates.name, callback=get_user_name, pass_bot=True)
     bot.register_message_handler(state=MyStates.phone_number, callback=get_user_phone, pass_bot=True, contact_form=True,
@@ -98,9 +91,10 @@ def register_functions_for_bot():
     bot.register_message_handler(state=MyStates.phone_number, callback=phone_incorrect, pass_bot=True,
                                  check_phone=False)
     bot.register_message_handler(state=MyStates.company, callback=get_user_company, pass_bot=True)
-    bot.register_message_handler(state=MyStates.answer_to_question, callback=get_answer_from_user, pass_bot=True, finish_poll=False)
-    bot.register_message_handler(state=MyStates.answer_to_question, callback=send_user_answers_to_db, pass_bot=True, finish_poll=True)
-
+    bot.register_message_handler(state=MyStates.answer_to_question, callback=get_answer_from_user, pass_bot=True,
+                                 finish_poll=False)
+    bot.register_message_handler(state=MyStates.answer_to_question, callback=send_user_answers_to_db, pass_bot=True,
+                                 finish_poll=True)
 
     # bot.register_message_handler(state=MyStates.resume, callback=receive_resume, pass_bot=True, check_file=True)
     # bot.register_message_handler(state=MyStates.resume, callback=resume_incorrect, pass_bot=True, check_file=False)
@@ -124,15 +118,22 @@ def register_functions_for_bot():
     bot.register_callback_query_handler(func=lambda callback: callback.data in DIRECTIONS,
                                         callback=callback.callback_query_for_scenario, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data,
-                                        callback=callback.callback_for_section, pass_bot=True, path_to_section_without_sub_directory=True)
+                                        callback=callback.callback_for_section, pass_bot=True,
+                                        path_to_section_without_sub_directory=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data,
-                                        callback=callback.callback_for_sub_direction, pass_bot=True, path_to_section=True)
+                                        callback=callback.callback_for_sub_direction, pass_bot=True,
+                                        path_to_section=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data,
-                                        callback=callback.callback_section_from_subcategory, pass_bot=True, path_to_section_with_sub_directory=True)
+                                        callback=callback.callback_section_from_subcategory, pass_bot=True,
+                                        path_to_section_with_sub_directory=True)
+    # bot.register_callback_query_handler(func=lambda callback: "question_" in callback.data,
+    #                                     callback=callback.callback_for_questions, pass_bot=True, check_user_registration=True, check_user_answer=True)
     bot.register_callback_query_handler(func=lambda callback: "question_" in callback.data,
-                                        callback=callback.callback_for_questions, pass_bot=True, check_user_registration=True)
+                                        callback=callback.callback_for_questions, pass_bot=True,
+                                        check_user_registration=True)
     bot.register_callback_query_handler(func=lambda callback: "question_" in callback.data,
-                                        callback=callback.callback_for_registration, pass_bot=True, check_user_registration=False)
+                                        callback=callback.callback_for_registration, pass_bot=True,
+                                        check_user_registration=False)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "cancel_from_inline_menu",
                                         callback=callback.callback_cancel_from_inline_menu, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "enter_into_a_dialog",
@@ -141,12 +142,11 @@ def register_functions_for_bot():
                                         callback=dialog_with_operator.callback_cancel_from_dialog, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "cancel_from_inline_menu",
                                         callback=callback.callback_cancel_from_inline_menu, pass_bot=True)
-
-
+    bot.register_callback_query_handler(func=lambda callback: callback.data == "change_answer",
+                                        callback=callback.callback_for_change_answer, pass_bot=True)
 
 
 register_functions_for_bot()
-
 
 bot.infinity_polling(skip_pending=True)
 # app = flask.Flask(__name__)

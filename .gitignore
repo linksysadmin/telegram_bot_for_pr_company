@@ -4,3 +4,5 @@
 database.db
 logs/kwork_project_telegram_bot_for_university.log
 logs/dialogue.log
+__pycache__
+.idea

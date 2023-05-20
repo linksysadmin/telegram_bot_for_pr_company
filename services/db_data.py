@@ -7,6 +7,12 @@ from services.db import fetch_all, execute
 logger = logging.getLogger(__name__)
 
 
+def get_user_data_from_db(user_id: int):
+    data = fetch_all(sql='SELECT * FROM clients WHERE id = %s',
+                     params=(user_id,))
+    return data
+
+
 def get_data_briefings() -> list[tuple]:
     questions = fetch_all(sql='SELECT * FROM questions')
     return questions
@@ -18,6 +24,14 @@ def check_user_in_database(user_id) -> bool:
         params=(user_id,)
     )
     return bool(len(result_from_db))
+
+
+def get_user_answer(user_id: int, question_id: int):
+    result_from_db = fetch_all(
+        sql='''SELECT user_response FROM clients_briefings WHERE client_id = %s AND question_id = %s;''',
+        params=(user_id, question_id)
+    )
+    return result_from_db
 
 
 def get_directions_from_db() -> list[tuple]:
@@ -58,7 +72,6 @@ def get_questions_from_db(direction, section, sub_direction=None):
 
 
 def get_question_and_answers_from_db(id_question: int) -> tuple:
-
     all = fetch_all(sql='SELECT question_text, answer FROM questions WHERE id = %s', params=(id_question,))
     question = [i[0] for i in all][0]
     try:
@@ -91,29 +104,11 @@ def add_users_data_to_db(user_id: int, name: str, phone: str, company: str, tabl
 
 
 def add_user_answers_to_db(user_id: int, question_id: int, user_response: str):
-    try:
-        if table is None:
-            execute(
-                sql='''INSERT INTO clients (id, name, phone, company)
-                     VALUES (%s, %s, %s, %s)''',
-                params=[(user_id, name, phone, company)])
-            return True
-        else:
-            execute(
-                sql='''INSERT INTO {} (id, name, phone, company)
-                     VALUES (%s, %s, %s, %s)'''.format(table),
-                params=[(user_id, name, phone, company)])
-            return True
-
-    except IntegrityError:
-        logger.warning(f'Уже есть этот пользователь в таблице {table}')
-        return False
-    except Exception as e:
-        logger.error(e)
-
+    execute(
+        sql='''INSERT INTO clients_briefings (client_id, question_id, user_response)
+             VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE user_response = VALUES (user_response)''',
+        params=[(user_id, question_id, user_response)])
 
 
 if __name__ == '__main__':
-    add_users_data_to_db(123213, 'Name', '+2132123132', 'Company')
-
-
+    print(get_user_data_from_db(5016639732))

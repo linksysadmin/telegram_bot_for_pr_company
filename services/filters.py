@@ -49,6 +49,17 @@ class CheckUserRegistration(telebot.custom_filters.SimpleCustomFilter):
             return False
 
 
+# class CheckUserAnswer(telebot.custom_filters.SimpleCustomFilter):
+#     key = 'check_user_answer'
+#
+#     def check(self, call):
+#         question_id = call.data.split('_')[1]
+#         if check_user_answer(call.from_user.id, question_id):
+#             return True
+#         else:
+#             return False
+
+
 class CheckPhoneNumber(telebot.custom_filters.SimpleCustomFilter):
     key = 'check_phone'
 
@@ -67,7 +78,6 @@ class ContactForm(telebot.custom_filters.SimpleCustomFilter):
         return message.contact is not None
 
 
-
 class FinishPoll(telebot.custom_filters.SimpleCustomFilter):
     key = 'finish_poll'
 
@@ -76,17 +86,6 @@ class FinishPoll(telebot.custom_filters.SimpleCustomFilter):
             return True
         else:
             return False
-
-
-
-
-
-
-
-
-
-
-
 
 
 class CheckConsent(telebot.custom_filters.SimpleCustomFilter):
@@ -99,14 +98,6 @@ class CheckConsent(telebot.custom_filters.SimpleCustomFilter):
             return False
 
 
-class CheckAnswer(telebot.custom_filters.SimpleCustomFilter):
-    key = 'check_answer'
-
-    def check(self, message):
-        if message.text == 'Да':
-            return True
-        else:
-            return False
 
 
 class CheckFile(telebot.custom_filters.SimpleCustomFilter):
@@ -119,10 +110,4 @@ class CheckFile(telebot.custom_filters.SimpleCustomFilter):
             return False
 
 
-def check_user_in_direction(user_id: int) -> bool:
-    direction = REDIS.get(f'user:{user_id}:check_direction')
-    logger.info(f'{direction}: {user_id}')
-    if direction is not None:
-        return True
-    else:
-        return False
+

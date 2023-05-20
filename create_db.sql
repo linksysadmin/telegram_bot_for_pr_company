@@ -32,16 +32,26 @@ CREATE TABLE questions (
 );
 
 
+--CREATE TABLE clients_briefings (
+--    id BIGINT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+--    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+--    client_id BIGINT,
+--    question_id INT,
+--    user_response TEXT,
+--    FOREIGN KEY(client_id) REFERENCES clients(id),
+--    FOREIGN KEY(question_id) REFERENCES questions(id)
+--);
+
 CREATE TABLE clients_briefings (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    client_id BIGINT,
-    question_id INT,
+    client_id BIGINT NOT NULL,
+    question_id INT NOT NULL,
     user_response TEXT,
+    UNIQUE KEY idx_client_question (client_id, question_id),
     FOREIGN KEY(client_id) REFERENCES clients(id),
     FOREIGN KEY(question_id) REFERENCES questions(id)
 );
-
 
 INSERT INTO questions (direction, sub_direction, section_name, question_number, question_text, answer)
 VALUES
