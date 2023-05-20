@@ -1,0 +1,10 @@
+command = '/home/inside/PycharmProjects/kwork_project_telegram_bot_for_university/venv/bin/gunicorn'
+pythonpath = '/home/inside/PycharmProjects/kwork_project_telegram_bot_for_university'
+chdir = '/home/inside/PycharmProjects/kwork_project_telegram_bot_for_university/'
+bind = '127.0.0.1:8001'
+accesslog = '-'
+access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
+workers = 1
+user = 'inside'
+limit_request_fields = 32000
+limit_request_field_size = 0
