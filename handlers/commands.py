@@ -16,7 +16,6 @@ def start(message, bot):
         bot.delete_state(message.from_user.id, message.chat.id)
         remove_keyboard(message, bot, 'Отменено')
     user_data = get_user_data_from_db(message.from_user.id)
-
     bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=user_data[0][2],
                                                                     company=user_data[0][4]),
                      reply_markup=keyboard_enter_menu_for_clients())
@@ -24,7 +23,18 @@ def start(message, bot):
 
 
 def start_unauthorized(message, bot):
-    logger.info(f'User {message.from_user.first_name} (id: {message.from_user.id}) started a conversation')
+    logger.info(f'User {message.from_user.first_name} (id: {message.from_user.id}) start_unauthorized')
+    if bot.get_state(message.from_user.id, message.chat.id) is not None:
+        if bot.get_state(message.from_user.id, message.chat.id) in ('MyStates:name', 'MyStates:phone_number', 'MyStates:company'):
+            if bot.get_state(message.from_user.id, message.chat.id) == 'MyStates:phone_number':
+                remove_keyboard(message, bot, TEXT_MESSAGES['start_unauthorized'])
+                bot.set_state(message.from_user.id, MyStates.name)
+                return
+            bot.set_state(message.from_user.id, MyStates.name)
+            bot.send_message(message.chat.id, TEXT_MESSAGES['start_unauthorized'])
+            return
+        bot.delete_state(message.from_user.id, message.chat.id)
+        remove_keyboard(message, bot, 'Отменено')
     bot.set_state(message.from_user.id, MyStates.name)
     bot.send_message(message.chat.id, TEXT_MESSAGES['start_unauthorized'])
     logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
@@ -33,6 +43,7 @@ def start_unauthorized(message, bot):
 def delete_state_(message, bot):
     """ Выход из STATE """
     if bot.get_state(message.from_user.id, message.chat.id) == 'MyStates:answer_to_question':
+        bot.delete_state(message.from_user.id, message.chat.id)
         if get_user_answers(user=message.from_user.id):
             delete_user_answers_from_redis(user=message.from_user.id)
         path = get_keyboard_for_questions_from_redis(message.from_user.id)
@@ -40,9 +51,14 @@ def delete_state_(message, bot):
         bot.send_message(message.chat.id, 'Выберите вопрос:',
                          reply_markup=keyboard_for_questions(message.from_user.id, path=path))
         return
+    elif bot.get_state(message.from_user.id, message.chat.id) in ('MyStates:name', 'MyStates:phone_number', 'MyStates:company'):
+        if bot.get_state(message.from_user.id, message.chat.id) == 'MyStates:phone_number':
+            remove_keyboard(message, bot, 'Отменено')
+        bot.set_state(message.from_user.id, MyStates.name)
+        bot.send_message(message.chat.id, TEXT_MESSAGES['start_unauthorized'])
+        return
     elif bot.get_state(message.from_user.id, message.chat.id) is None:
         return
-
     remove_keyboard(message, bot, 'Отменено')
     bot.send_message(message.chat.id, 'Главное меню',
                      reply_markup=keyboard_enter_menu_for_clients())

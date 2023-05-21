@@ -1,11 +1,14 @@
 import logging
 
+from config import BASE_DIR
 from handlers.keyboards import keyboard_for_briefings, \
     keyboard_for_questions, keyboard_for_direction, keyboard_for_sub_direction, keyboard_enter_menu_for_clients, \
     keyboard_for_answer, keyboard_for_change_answer
 from services.db_data import get_data_briefings, get_directions_from_db, get_question_and_answers_from_db, \
     get_user_answer, get_user_data_from_db
-from services.redis_db import set_question_id_in_redis, get_question_id_from_redis
+from services.document_generation import generate_doc
+from services.redis_db import set_question_id_in_redis, get_question_id_from_redis, set_next_question_callback_in_redis, \
+    set_max_questions_in_redis, get_max_questions_from_redis
 from services.states import MyStates
 from handlers.text_messages import TEXT_MESSAGES
 
@@ -19,7 +22,13 @@ def callback_scenario(call, bot):
 
 
 def callback_formation_of_the_cp(call, bot):
-    pass
+    bot.send_chat_action(call.from_user.id, 'upload_document')
+    user_data = get_user_data_from_db(call.from_user.id)
+    generate_doc(user_data[0][2], user_data[0][4], user_data[0][3])
+    with open(f'{BASE_DIR}/document_templates/КП.docx', 'rb') as file:
+        bot.send_document(chat_id=call.message.chat.id, document=file,
+                          caption=f'Сформированное КП',
+                          disable_content_type_detection=True)
     # bot.delete_message(call.message.chat.id, call.message.id)
     # bot.send_message(call.message.chat.id, TEXT_MESSAGES['menu'], reply_markup=keyboard_for_scenario())
     # logger.info(f'Состояние пользователя - {bot.get_state(call.message.chat.id, call.from_user.id)}')
@@ -96,25 +105,28 @@ def callback_for_change_answer(call, bot):
     bot.set_state(call.from_user.id, MyStates.answer_to_question, call.from_user.id)
     question_id = get_question_id_from_redis(call.from_user.id)
     question, answers = get_question_and_answers_from_db(question_id)
-    bot.send_message(call.message.chat.id, f'❓\n\n{question}?\n\nНапишите ответ и нажмите "Отправить ответ"',
+    bot.send_message(call.message.chat.id, f'❓{question}?\n\nНапишите ответ и нажмите "✅ Отправить ответ"',
                      reply_markup=keyboard_for_answer(answers))
 
 
 def callback_for_questions(call, bot):
     logger.info(f'callback_for_questions: пришел callback: {call.data}')
     question_id = call.data.split('_')[1]
-    set_question_id_in_redis(user=call.from_user.id, question_id=question_id)
+    if int(question_id) <= get_max_questions_from_redis(call.from_user.id):
+        next_callback = f"{call.data.split('_')[0]}_{int(call.data.split('_')[1]) + 1}"
+        set_question_id_in_redis(user=call.from_user.id, question_id=question_id)
+        set_next_question_callback_in_redis(user=call.from_user.id, callback=next_callback)
     question, answers = get_question_and_answers_from_db(question_id)
     user_answer = get_user_answer(call.from_user.id, question_id)
     if bool(user_answer):
         user_answer = user_answer[0][0]
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text=f'❓\n\n{question}?\n\nВаше ответ:{user_answer}',
+                              text=f'❓{question}?\n\nВаше ответ:{user_answer}',
                               reply_markup=keyboard_for_change_answer())
         return
     bot.set_state(call.from_user.id, MyStates.answer_to_question, call.from_user.id)
     bot.delete_message(call.message.chat.id, call.message.id)
-    bot.send_message(call.message.chat.id, f'❓\n\n{question}?\n\nНапишите ответ и нажмите "Отправить ответ"',
+    bot.send_message(call.message.chat.id, f'❓{question}?\n\nНапишите ответ и нажмите "✅ Отправить ответ"',
                      reply_markup=keyboard_for_answer(answers))
 
 

@@ -1,12 +1,17 @@
 import logging
 
+from handlers.callback import callback_for_questions
+from handlers.commands import start
 from handlers.keyboards import remove_keyboard, \
     keyboard_send_phone, keyboard_for_answer, keyboard_for_briefings, keyboard_enter_menu_for_clients, \
-    keyboard_for_questions
+    keyboard_for_questions, keyboard_for_sex, keyboard_for_age, keyboard_for_other_answers, keyboard_for_change_answer
 from handlers.text_messages import TEXT_MESSAGES
-from services.db_data import add_users_data_to_db, get_question_and_answers_from_db, add_user_answers_to_db
+from services.db_data import add_users_data_to_db, get_question_and_answers_from_db, add_user_answers_to_db, \
+    get_user_answer
 from services.redis_db import add_answers_to_list, get_user_answers, \
-    get_question_id_from_redis, delete_user_answers_from_redis, get_keyboard_for_questions_from_redis
+    get_question_id_from_redis, delete_user_answers_from_redis, get_keyboard_for_questions_from_redis, \
+    get_next_question_callback_from_redis, set_question_id_in_redis, set_next_question_callback_in_redis, \
+    get_max_questions_from_redis
 from services.states import MyStates
 
 logger = logging.getLogger(__name__)
@@ -48,8 +53,43 @@ def get_user_company(message, bot):
 
 
 def get_answer_from_user(message, bot):
+    if message.text in ['Пол', 'Возраст', 'Доход', 'Интересы']:
+        add_answers_to_list(client_id=message.from_user.id, answer=message.text)
+        if message.text == 'Пол':
+            bot.send_message(message.chat.id, f'Выберите пол', reply_markup=keyboard_for_sex())
+        elif message.text == 'Возраст':
+            bot.send_message(message.chat.id, f'Выберите возраст', reply_markup=keyboard_for_age())
+        elif message.text == 'Доход':
+            bot.send_message(message.chat.id, f'Укажите доход', reply_markup=keyboard_for_other_answers())
+        elif message.text == 'Интересы':
+            bot.send_message(message.chat.id, f'Укажите интересы', reply_markup=keyboard_for_other_answers())
+        return
+    elif message.text == 'Следующий вопрос':
+        callback = get_next_question_callback_from_redis(message.from_user.id)
+        question_id = callback.split('_')[1]
+        if int(question_id) <= get_max_questions_from_redis(message.from_user.id):
+            next_callback = f"{callback.split('_')[0]}_{int(callback.split('_')[1]) + 1}"
+            set_question_id_in_redis(user=message.from_user.id, question_id=question_id)
+            set_next_question_callback_in_redis(user=message.from_user.id, callback=next_callback)
+        elif int(question_id) > get_max_questions_from_redis(message.from_user.id):
+            remove_keyboard(message, bot, 'Вопросов в этом направлении больше, нет(')
+            start(message, bot)
+            return
+        question, answers = get_question_and_answers_from_db(question_id)
+        user_answer = get_user_answer(message.from_user.id, question_id)
+        if bool(user_answer):
+            user_answer = user_answer[0][0]
+            bot.send_message(message.chat.id, f'❓{question}?\n\nВаше ответ:{user_answer}',
+                             reply_markup=keyboard_for_answer(answers))
+            return
+        bot.set_state(message.from_user.id, MyStates.answer_to_question, message.from_user.id)
+        bot.send_message(message.chat.id, f'❓{question}?\n\nНапишите ответ и нажмите "✅ Отправить ответ"',
+                         reply_markup=keyboard_for_answer(answers))
+        # bot.delete_message(call.message.chat.id, call.message.id)
+
+        return
     add_answers_to_list(client_id=message.from_user.id, answer=message.text)
-    bot.send_message(message.chat.id, f'Ответ принят, еще ?')
+    bot.send_message(message.chat.id, f'Ответ принят, нажмите "✅ Отправить ответ" если больше нечего добавить')
 
 
 def send_user_answers_to_db(message, bot):

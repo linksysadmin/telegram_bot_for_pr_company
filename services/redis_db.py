@@ -16,6 +16,14 @@ def get_keyboard_for_questions_from_redis(user_id: int):
     return json.loads(REDIS.get(f'keyboard_for_questions|{user_id}'))
 
 
+def set_max_questions_in_redis(user_id: int, number):
+    REDIS.set(f'max_questions|{user_id}', number)
+
+
+def get_max_questions_from_redis(user_id: int):
+    return int(REDIS.get(f'max_questions|{user_id}'))
+
+
 def add_answers_to_list(client_id, answer):
     REDIS.rpush(f'answers_list:{client_id}', answer)
 
@@ -35,6 +43,14 @@ def set_question_id_in_redis(user: int, question_id: int):
 
 def get_question_id_from_redis(user: int):
     return int(REDIS.get(f'question_id_for_user:{user}'))
+
+
+def set_next_question_callback_in_redis(user: int, callback: str):
+    REDIS.set(f'next_question_callback_in_redis:{user}', json.dumps(callback))
+
+
+def get_next_question_callback_from_redis(user: int):
+    return json.loads(REDIS.get(f'next_question_callback_in_redis:{user}'))
 
 
 def get_client_id():
@@ -57,5 +73,4 @@ def set_operator_state(state):
 
 
 if __name__ == '__main__':
-    add_keyboard_for_questions_in_redis(123, 'fawe|14r4')
-    print(get_keyboard_for_questions_from_redis(123))
+    pass

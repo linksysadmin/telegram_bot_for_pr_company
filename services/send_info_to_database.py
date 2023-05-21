@@ -1,7 +1,7 @@
 import logging
 
 from sqlite3 import IntegrityError
-from services.db import execute, fetch_all
+from db import execute, fetch_all
 
 logger = logging.getLogger(__name__)
 

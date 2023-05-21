@@ -4,7 +4,8 @@ from telebot import types
 
 from services.db_data import get_directions_from_db, get_sub_directions_from_db, \
     get_sections_from_db, get_questions_from_db
-from services.redis_db import add_keyboard_for_questions_in_redis
+from services.redis_db import add_keyboard_for_questions_in_redis, get_next_question_callback_from_redis, \
+    set_max_questions_in_redis
 
 logger = logging.getLogger(__name__)
 
@@ -70,17 +71,19 @@ def keyboard_for_questions(user_id: int, path: str):
     logger.info(f'Клавиатура вопросов: {path}')
     add_keyboard_for_questions_in_redis(user_id, path)
     keyboard = types.InlineKeyboardMarkup(row_width=1)
+    list_of_questions = None
+    buttons = []
     if len(path.split('|')) == 2:  # если мы перешли с dir|sec
         list_of_questions = get_questions_from_db(path.split('|')[0], path.split('|')[1])
-
-        for i in list_of_questions:
-            keyboard.add(types.InlineKeyboardButton(text=f'Вопрос {i[1]}', callback_data=f'question_{i[0]}'))
-            logger.info(f'В keyboard_for_questions Созданы callbackи: question_{i[0]}')
     if len(path.split('|')) == 3:  # если мы перешли с dir|sub|sec
         list_of_questions = get_questions_from_db(path.split('|')[0], path.split('|')[2], path.split('|')[1])
-        for i in list_of_questions:
-            keyboard.add(types.InlineKeyboardButton(text=f'Вопрос {i[1]}', callback_data=f'question_{i[0]}'))
-            logger.info(f'В keyboard_for_questions Созданы callbackи: question_{i[0]}')
+    for i in list_of_questions:
+        buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {i[1]}', callback_data=f'question_{i[0]}'))
+        logger.info(f'В keyboard_for_questions Созданы callbackи: question_{i[0]}')
+    set_max_questions_in_redis(user_id, len(list_of_questions))
+    button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
+    for row in button_rows:
+        keyboard.row(*row)
     cancel = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
     keyboard.add(cancel)
     return keyboard
@@ -91,7 +94,8 @@ def keyboard_for_answer(answers):
     keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     for answer in answers:
         keyboard.add(types.KeyboardButton(text=answer))
-    keyboard.add(types.KeyboardButton(text="Отправить ответ"))
+    keyboard.add(types.KeyboardButton(text="✅ Отправить ответ"))
+    keyboard.add(types.KeyboardButton(text="Следующий вопрос"))
     keyboard.add(types.KeyboardButton(text="К вопросам"))
     return keyboard
 
@@ -124,6 +128,43 @@ def keyboard_send_phone():
     send_phone_button = types.KeyboardButton(text="Отправить номер телефона", request_contact=True)
     cancel_button = types.KeyboardButton(text="Отменить")
     keyboard.add(send_phone_button, cancel_button)
+    return keyboard
+
+
+def keyboard_for_sex():
+    """ Keyboard for choice the sex """
+    keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    key1 = types.KeyboardButton(text='Мужской')
+    key2 = types.KeyboardButton(text='Женский')
+    send = types.KeyboardButton(text="✅ Отправить ответ")
+    next = keyboard.add(types.KeyboardButton(text="Следующий вопрос"))
+    cancel_button = types.KeyboardButton(text="Отменить")
+    keyboard.row(key1, key2)
+    keyboard.row(send, next, cancel_button)
+    return keyboard
+
+
+def keyboard_for_age():
+    """ Keyboard for choice the sex """
+    keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    key1 = types.KeyboardButton(text='От 18 до 25')
+    key2 = types.KeyboardButton(text='От 25 до 35')
+    key3 = types.KeyboardButton(text='От 35 до 50')
+    send = types.KeyboardButton(text="✅ Отправить ответ")
+    next = keyboard.add(types.KeyboardButton(text="Следующий вопрос"))
+    cancel_button = types.KeyboardButton(text="Отменить")
+    keyboard.row(key1, key2, key3)
+    keyboard.row(send, next, cancel_button)
+    return keyboard
+
+
+def keyboard_for_other_answers():
+    """ Keyboard for choice the sex """
+    keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    send = types.KeyboardButton(text="✅ Отправить ответ")
+    next = keyboard.add(types.KeyboardButton(text="Следующий вопрос"))
+    cancel_button = types.KeyboardButton(text="Отменить")
+    keyboard.row(send, next, cancel_button)
     return keyboard
 
 

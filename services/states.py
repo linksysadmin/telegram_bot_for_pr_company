@@ -14,28 +14,3 @@ class MyStates(StatesGroup):
     phone_number = State()
     company = State()
     answer_to_question = State()
-
-
-
-
-
-
-
-
-    choose_direction = State()
-
-    date_of_birthday = State()
-    sex = State()
-    email = State()
-
-    send_users_data = State()
-
-    resume = State()
-
-    university = State()
-    season = State()
-
-    test = State()
-    question = State()
-
-    password = State()

@@ -75,9 +75,8 @@ VALUES
     ('Креатив', NULL, 'Концепция', 1, 'Вопрос Концепция', 'Ответ1, Ответ2, Ответ3'),
     ('Креатив', NULL, 'Концепция', 2, 'Вопрос Концепция', 'Ответ1, Ответ2, Ответ3');
 
-INSERT INTO clients (id) VALUES (123);
-
-INSERT INTO clients_briefings (client_id, question_id, user_response) VALUES (123, 2, 'Ответ пользователя');
+--
+--INSERT INTO clients_briefings (client_id, question_id, user_response) VALUES (123, 2, 'Ответ пользователя');
 
 --SELECT cb.client_id, cb.response, q.text FROM clients_briefings cb INNER JOIN questions q ON cb.question_id=q.id WHERE cb.client_id = 456;
 

@@ -82,10 +82,20 @@ class FinishPoll(telebot.custom_filters.SimpleCustomFilter):
     key = 'finish_poll'
 
     def check(self, message):
-        if message.text == 'Отправить ответ':
+        if message.text == '✅ Отправить ответ':
             return True
         else:
             return False
+
+
+# class DemographicCharacteristics(telebot.custom_filters.SimpleCustomFilter):
+#     key = 'dem_character'
+#
+#     def check(self, message):
+#         if message.text in ['Пол', 'Возраст', 'Доход', 'Интересы']:
+#             return True
+#         else:
+#             return False
 
 
 class CheckConsent(telebot.custom_filters.SimpleCustomFilter):

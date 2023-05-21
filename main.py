@@ -13,7 +13,7 @@ from handlers.commands import start, \
      delete_state_, start_unauthorized
 from handlers.get_info_from_user import get_user_name, get_user_phone, phone_incorrect, get_user_company, \
     get_answer_from_user, send_user_answers_to_db
-from handlers.send_data import send_users_data
+
 
 from services.db_data import get_data_briefings
 from services.states import MyStates
@@ -95,11 +95,6 @@ def register_functions_for_bot():
                                  finish_poll=False)
     bot.register_message_handler(state=MyStates.answer_to_question, callback=send_user_answers_to_db, pass_bot=True,
                                  finish_poll=True)
-
-    # bot.register_message_handler(state=MyStates.resume, callback=receive_resume, pass_bot=True, check_file=True)
-    # bot.register_message_handler(state=MyStates.resume, callback=resume_incorrect, pass_bot=True, check_file=False)
-    bot.register_message_handler(state=MyStates.send_users_data, callback=send_users_data, pass_bot=True)
-    # bot.register_message_handler(state=MyStates.password, callback=check_password_and_add_admin_to_db, pass_bot=True)
 
     """   Регистрация обработчиков нажатий на клавиатуру   """
 

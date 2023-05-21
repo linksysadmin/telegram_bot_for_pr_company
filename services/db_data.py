@@ -2,7 +2,7 @@ import logging
 
 from mysql.connector import IntegrityError
 
-from services.db import fetch_all, execute
+from db import fetch_all, execute
 
 logger = logging.getLogger(__name__)
 
