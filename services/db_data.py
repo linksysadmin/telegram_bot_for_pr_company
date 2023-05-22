@@ -2,7 +2,7 @@ import logging
 
 from mysql.connector import IntegrityError
 
-from db import fetch_all, execute
+from db import fetch_all, execute, fetch_one
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 def get_user_data_from_db(user_id: int):
     data = fetch_all(sql='SELECT * FROM clients WHERE id = %s',
                      params=(user_id,))
-    return data
+    return {'date_of_registration': data[0][0].strftime('%d %B %Y'), 'id': data[0][1], 'name': data[0][2], 'phone': data[0][3], 'company': data[0][4],
+            'tech_doc': bool(data[0][5]), 'cp_doc': bool(data[0][6])}
 
 
 def get_data_briefings() -> list[tuple]:
@@ -34,13 +35,22 @@ def get_user_answer(user_id: int, question_id: int):
     return result_from_db
 
 
+def get_questions_id_from_user_answers(user_id: int):
+    result_from_db = fetch_all(
+        sql='''SELECT question_id FROM clients_briefings WHERE client_id = %s''',
+        params=(user_id,)
+    )
+    list_of_questions_id = [id_[0] for id_ in result_from_db]
+    return list_of_questions_id
+
+
 def get_directions_from_db() -> list[tuple]:
     questions = fetch_all(sql='SELECT DISTINCT direction FROM questions')
     return questions
 
 
 def get_sub_directions_from_db(direction: str):
-    sub_directions = fetch_all(sql='SELECT sub_direction FROM questions WHERE direction = %s',
+    sub_directions = fetch_all(sql='SELECT DISTINCT sub_direction FROM questions WHERE direction = %s',
                                params=(direction,))
     if sub_directions[0][0] is None:
         return False
@@ -53,7 +63,7 @@ def get_sections_from_db(direction, sub_direction=None):
             sql='SELECT DISTINCT section_name FROM questions WHERE direction = %s AND sub_direction IS NULL',
             params=(direction,))
     else:
-        sections = fetch_all(sql='SELECT section_name FROM questions WHERE direction = %s AND sub_direction = %s',
+        sections = fetch_all(sql='SELECT DISTINCT section_name FROM questions WHERE direction = %s AND sub_direction = %s',
                              params=(direction, sub_direction))
     return sections
 
@@ -111,4 +121,4 @@ def add_user_answers_to_db(user_id: int, question_id: int, user_response: str):
 
 
 if __name__ == '__main__':
-    print(get_user_data_from_db(5016639732))
+    pass

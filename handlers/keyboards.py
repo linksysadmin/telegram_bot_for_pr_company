@@ -1,25 +1,65 @@
+import os
 import logging
 
 from telebot import types
 
+from config import BASE_DIR
 from services.db_data import get_directions_from_db, get_sub_directions_from_db, \
-    get_sections_from_db, get_questions_from_db
-from services.redis_db import add_keyboard_for_questions_in_redis, get_next_question_callback_from_redis, \
-    set_max_questions_in_redis
+    get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers
+from services.redis_db import add_keyboard_for_questions_in_redis, set_max_question_id_in_redis
 
 logger = logging.getLogger(__name__)
 
 
-def keyboard_enter_menu_for_clients():
+def keyboard_enter_menu_for_clients(doc=False):
     """Keyboard for main menu"""
     keyboard = types.InlineKeyboardMarkup(row_width=True)
     key1 = types.InlineKeyboardButton(text='🎲 Брифинг', callback_data='scenario')
-    key2 = types.InlineKeyboardButton(text='📝 Формирование КП', callback_data='formation_of_the_cp')
+    key2 = types.InlineKeyboardButton(text='📝 Тех.задания и КП', callback_data='terms_of_reference_and_commercial_offer')
     key3 = types.InlineKeyboardButton(text='👨‍💻 Чат с оператором', callback_data='chat_with_operator')
     key4 = types.InlineKeyboardButton(text='💬 Сервис мгновенных сообщений', callback_data='instant_messaging_service')
     key5 = types.InlineKeyboardButton(text='📈 Выгрузка отчёта', callback_data='upload_report')
     key6 = types.InlineKeyboardButton(text='🤳 Блог', callback_data='blog')
-    keyboard.add(key1, key2, key3, key4, key5, key6)
+    if doc is True:
+        keyboard.add(key2)
+    keyboard.add(key1, key3, key4, key5, key6)
+    return keyboard
+
+
+def keyboard_for_reference_and_commercial_offer():
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    key1 = types.InlineKeyboardButton(text='📃 Тех.задания', callback_data='terms_of_reference')
+    key2 = types.InlineKeyboardButton(text='📑 Коммерческие предложения', callback_data='commercial_offer')
+    key3 = types.InlineKeyboardButton(text='Назад', callback_data='cancel_from_inline_menu')
+    keyboard.add(key1, key2, key3)
+    return keyboard
+
+
+def keyboard_for_terms_of_reference(user_id: int):
+    """ Ищем документы "Технического задания" в папке document_templates и отображаем даты """
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    directory = f'{BASE_DIR}/document_templates'
+    files = os.listdir(directory)
+    matching_files = [file for file in files if file.startswith(f'ТЗ_')]
+    for btn in matching_files:
+        keyboard.add(types.InlineKeyboardButton(text=f'{btn}', callback_data=f'{btn}'))
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='terms_of_reference_and_commercial_offer')
+    main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
+    keyboard.row(cancel, main_menu)
+    return keyboard
+
+
+def keyboard_for_commercial_offer(user_id: int):
+    """ Ищем документы "Технического задания" в папке document_templates и отображаем даты """
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    directory = f'{BASE_DIR}/document_templates'
+    files = os.listdir(directory)
+    matching_files = [file for file in files if file.startswith(f'КП_')]
+    for btn in matching_files:
+        keyboard.add(types.InlineKeyboardButton(text=f'{btn}', callback_data=f'{btn}'))
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='terms_of_reference_and_commercial_offer')
+    main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
+    keyboard.row(cancel, main_menu)
     return keyboard
 
 
@@ -73,19 +113,23 @@ def keyboard_for_questions(user_id: int, path: str):
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     list_of_questions = None
     buttons = []
+    list_of_questions_id_from_user_answers = get_questions_id_from_user_answers(user_id)
     if len(path.split('|')) == 2:  # если мы перешли с dir|sec
         list_of_questions = get_questions_from_db(path.split('|')[0], path.split('|')[1])
     if len(path.split('|')) == 3:  # если мы перешли с dir|sub|sec
         list_of_questions = get_questions_from_db(path.split('|')[0], path.split('|')[2], path.split('|')[1])
     for i in list_of_questions:
-        buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {i[1]}', callback_data=f'question_{i[0]}'))
-        logger.info(f'В keyboard_for_questions Созданы callbackи: question_{i[0]}')
-    set_max_questions_in_redis(user_id, len(list_of_questions))
+        if i[0] in list_of_questions_id_from_user_answers:
+            buttons.append(types.InlineKeyboardButton(text=f'✅ {i[1]}', callback_data=f'question_{i[0]}'))
+        else:
+            buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {i[1]}', callback_data=f'question_{i[0]}'))
+    set_max_question_id_in_redis(user_id, list_of_questions[-1][0])
     button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
     for row in button_rows:
         keyboard.row(*row)
+    technical_exercise = types.InlineKeyboardButton(text='Сформировать ТЗ', callback_data='technical_exercise')
     cancel = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
-    keyboard.add(cancel)
+    keyboard.add(technical_exercise, cancel)
     return keyboard
 
 
@@ -103,9 +147,10 @@ def keyboard_for_answer(answers):
 def keyboard_for_change_answer():
     logger.info(f'Клавиатура для изменения')
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-    key1 = types.InlineKeyboardButton(text='Изменить ответ', callback_data='change_answer')
-    cancel = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
-    keyboard.add(key1, cancel)
+    change = types.InlineKeyboardButton(text='Изменить ответ', callback_data='change_answer')
+    cancel = types.InlineKeyboardButton(text='К вопросам', callback_data='back_to_questions')
+    menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
+    keyboard.add(change, cancel, menu)
     return keyboard
 
 

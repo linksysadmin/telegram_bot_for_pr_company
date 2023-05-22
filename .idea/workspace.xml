@@ -5,25 +5,25 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="408f61a6-9975-4ccc-b2f3-90f02b4ce47f" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/services/document_generation.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/document_templates/Бриф на (услуга) от (Компания).doc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/start_gunicorn.sh" beforeDir="false" afterPath="$PROJECT_DIR$/bin/start_gunicorn.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/create_db.sql" beforeDir="false" afterPath="$PROJECT_DIR$/create_db.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/administrator_function.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/document_templates/КП.docx" beforeDir="false" afterPath="$PROJECT_DIR$/document_templates/КП.docx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gunicorn_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/gunicorn_config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/callback.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/callback.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/commands.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/dialog_with_operator.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/dialog_with_operator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/get_info_from_user.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/get_info_from_user.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/keyboards.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/send_data.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/send_document.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/db.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/db_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/db_data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/filters.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/get_excel_file.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/services/redis_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/redis_db.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/send_info_to_database.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/send_info_to_database.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/states.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/states.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/template_data_for_callbacks.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,16 +48,17 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/inside/PycharmProjects/kwork_telegram_bot_for_KP&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "last_opened_file_path": "/home/inside/PycharmProjects/kwork_telegram_bot_for_KP/document_templates"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/document_templates" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/bin" />
     </key>
@@ -214,10 +215,10 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.db_data" />
         <item itemvalue="Python.redis_db" />
         <item itemvalue="Python.document_generation" />
         <item itemvalue="Python.send_document" />
-        <item itemvalue="Python.db_data" />
         <item itemvalue="Python.callback" />
       </list>
     </recent_temporary>

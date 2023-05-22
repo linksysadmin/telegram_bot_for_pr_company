@@ -4,7 +4,7 @@ import re
 import telebot
 
 from config import REDIS
-from services.db_data import check_user_in_database, get_data_briefings
+from services.db_data import check_user_in_database, get_data_briefings, get_user_data_from_db
 
 logger = logging.getLogger(__name__)
 
@@ -88,14 +88,15 @@ class FinishPoll(telebot.custom_filters.SimpleCustomFilter):
             return False
 
 
-# class DemographicCharacteristics(telebot.custom_filters.SimpleCustomFilter):
-#     key = 'dem_character'
-#
-#     def check(self, message):
-#         if message.text in ['Пол', 'Возраст', 'Доход', 'Интересы']:
-#             return True
-#         else:
-#             return False
+class NextQuestion(telebot.custom_filters.SimpleCustomFilter):
+    key = 'next_question'
+
+    def check(self, message):
+        if message.text in ['Следующий вопрос']:
+            return True
+        else:
+            return False
+
 
 
 class CheckConsent(telebot.custom_filters.SimpleCustomFilter):
@@ -106,8 +107,6 @@ class CheckConsent(telebot.custom_filters.SimpleCustomFilter):
             return True
         else:
             return False
-
-
 
 
 class CheckFile(telebot.custom_filters.SimpleCustomFilter):

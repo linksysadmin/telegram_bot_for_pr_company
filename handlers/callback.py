@@ -3,12 +3,13 @@ import logging
 from config import BASE_DIR
 from handlers.keyboards import keyboard_for_briefings, \
     keyboard_for_questions, keyboard_for_direction, keyboard_for_sub_direction, keyboard_enter_menu_for_clients, \
-    keyboard_for_answer, keyboard_for_change_answer
+    keyboard_for_answer, keyboard_for_change_answer, keyboard_for_reference_and_commercial_offer, \
+    keyboard_for_commercial_offer, keyboard_for_terms_of_reference
 from services.db_data import get_data_briefings, get_directions_from_db, get_question_and_answers_from_db, \
     get_user_answer, get_user_data_from_db
 from services.document_generation import generate_doc
 from services.redis_db import set_question_id_in_redis, get_question_id_from_redis, set_next_question_callback_in_redis, \
-    set_max_questions_in_redis, get_max_questions_from_redis
+    set_max_question_id_in_redis, get_max_question_id_in_redis, get_keyboard_for_questions_from_redis
 from services.states import MyStates
 from handlers.text_messages import TEXT_MESSAGES
 
@@ -21,23 +22,46 @@ def callback_scenario(call, bot):
     logger.info(f'Состояние пользователя - {bot.get_state(call.message.chat.id, call.from_user.id)}')
 
 
-def callback_formation_of_the_cp(call, bot):
+def callback_terms_of_reference_and_commercial_offer(call, bot):
+    logger.info(f'callback_terms_of_reference_and_commercial_offer: пришел callback: {call.data}')
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          text='Выберите какой файл вы хотите получить:',
+                          reply_markup=keyboard_for_reference_and_commercial_offer())
+
+
+def callback_terms_of_reference(call, bot):
+    logger.info(f'callback_terms_of_reference: пришел callback: {call.data}')
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          text='Выберите какой файл вы хотите получить:',
+                          reply_markup=keyboard_for_terms_of_reference(call.from_user_id))
+
+
+def callback_commercial_offer(call, bot):
+    logger.info(f'callback_terms_of_reference: пришел callback: {call.data}')
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          text='Выберите какой файл вы хотите получить:',
+                          reply_markup=keyboard_for_commercial_offer(call.from_user_id))
+
+
+def callback_technical_exercise(call, bot):
+    logger.info(f'callback_terms_of_reference: пришел callback: {call.data}')
+    bot.send_message(call.message.chat.id, 'Здесь будет сформирован файл')
+
+
+def callback_send_document(call, bot):
     bot.send_chat_action(call.from_user.id, 'upload_document')
     user_data = get_user_data_from_db(call.from_user.id)
-    generate_doc(user_data[0][2], user_data[0][4], user_data[0][3])
+    generate_doc(user_data['name'], user_data['company'], user_data['phone'])
     with open(f'{BASE_DIR}/document_templates/КП.docx', 'rb') as file:
         bot.send_document(chat_id=call.message.chat.id, document=file,
                           caption=f'Сформированное КП',
                           disable_content_type_detection=True)
-    # bot.delete_message(call.message.chat.id, call.message.id)
-    # bot.send_message(call.message.chat.id, TEXT_MESSAGES['menu'], reply_markup=keyboard_for_scenario())
-    # logger.info(f'Состояние пользователя - {bot.get_state(call.message.chat.id, call.from_user.id)}')
+    logger.info(f'Состояние пользователя - {bot.get_state(call.message.chat.id, call.from_user.id)}')
 
 
 def callback_chat_with_operator(call, bot):
-    # bot.delete_message(call.message.chat.id, call.message.id)
     bot.send_message(call.message.chat.id, TEXT_MESSAGES['chat_with_operator'])
-    # logger.info(f'Состояние пользователя - {bot.get_state(call.message.chat.id, call.from_user.id)}')
+    logger.info(f'Состояние пользователя - {bot.get_state(call.message.chat.id, call.from_user.id)}')
 
 
 def callback_upload_report(call, bot):
@@ -93,10 +117,25 @@ def callback_section_from_subcategory(call, bot):
 def callback_cancel_from_inline_menu(call, bot):
     logger.info(f'callback_cancel_from_inline_menu: пришел callback: {call.data}')
     user_data = get_user_data_from_db(call.from_user.id)
+    if user_data['tech_doc'] or user_data['cp_doc']:
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=TEXT_MESSAGES['start'].format(username=user_data['name'],
+                                                                 company=user_data['company']),
+                              reply_markup=keyboard_enter_menu_for_clients(True))
+        return
+    else:
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text=TEXT_MESSAGES['start'].format(username=user_data['name'],
+                                                                 company=user_data['company']),
+                              reply_markup=keyboard_enter_menu_for_clients())
+
+
+def callback_back_to_questions(call, bot):
+    logger.info(f'callback_back_to_questions: пришел callback: {call.data}')
+    path = get_keyboard_for_questions_from_redis(call.from_user.id)
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                          text=TEXT_MESSAGES['start'].format(username=user_data[0][2],
-                                                             company=user_data[0][4]),
-                          reply_markup=keyboard_enter_menu_for_clients())
+                          text=TEXT_MESSAGES['menu'],
+                          reply_markup=keyboard_for_questions(call.from_user.id, path))
 
 
 def callback_for_change_answer(call, bot):
@@ -112,7 +151,7 @@ def callback_for_change_answer(call, bot):
 def callback_for_questions(call, bot):
     logger.info(f'callback_for_questions: пришел callback: {call.data}')
     question_id = call.data.split('_')[1]
-    if int(question_id) <= get_max_questions_from_redis(call.from_user.id):
+    if int(question_id) <= get_max_question_id_in_redis(call.from_user.id):
         next_callback = f"{call.data.split('_')[0]}_{int(call.data.split('_')[1]) + 1}"
         set_question_id_in_redis(user=call.from_user.id, question_id=question_id)
         set_next_question_callback_in_redis(user=call.from_user.id, callback=next_callback)

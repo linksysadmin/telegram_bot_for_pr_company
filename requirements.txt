@@ -4,3 +4,4 @@ python-dotenv==1.0.0
 redis==4.5.4
 gunicorn==20.1.0
 docxtpl==0.16.7
+mysql-connector-python==8.0.33

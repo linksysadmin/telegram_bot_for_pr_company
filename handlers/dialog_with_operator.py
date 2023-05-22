@@ -4,6 +4,8 @@ from telebot import apihelper
 
 from config import OPERATOR_ID
 from handlers.keyboards import keyboard_for_delete_dialogue, keyboard_for_operator, keyboard_enter_menu_for_clients
+from handlers.text_messages import TEXT_MESSAGES
+from services.db_data import get_user_data_from_db
 from services.redis_db import get_operator_state, set_operator_state, add_client_to_queue, get_next_client_from_queue, \
     get_client_id
 from services.states import MyStates
@@ -83,7 +85,8 @@ def callback_cancel_from_dialog(call, bot):
     try:
         if call.from_user.id == OPERATOR_ID:
             bot.send_message(OPERATOR_ID, f'Вы вышли из диалога!')
-            bot.send_message(client_id, f'Оператор завершил диалог с вами', reply_markup=keyboard_enter_menu_for_clients())
+            bot.send_message(client_id, f'Оператор завершил диалог с вами',
+                             reply_markup=keyboard_enter_menu_for_clients())
         else:
             bot.send_message(call.from_user.id, f'Вы вышли из диалога\n\nНажмите /start - для входа в меню')
             bot.send_message(OPERATOR_ID, f'Клиент завершил диалог с вами')
@@ -102,11 +105,3 @@ def callback_cancel_from_dialog(call, bot):
         # Если нет следующего клиента, оператор становится свободным
         set_operator_state(b'free')
         logger.info('Оператор свободен')
-
-# def not_dialogs(user_id: int, bot):
-#     if user_id == OPERATOR_ID:
-#         bot.delete_state(OPERATOR_ID, OPERATOR_ID)
-#         bot.send_message(OPERATOR_ID, 'Все диалоги закрыты')
-#     else:
-#         bot.delete_state(user_id, user_id)
-#         bot.send_message(user_id, f'Нажмите /start - для входа в меню')

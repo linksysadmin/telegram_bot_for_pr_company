@@ -1,7 +1,7 @@
-# telegram_bot_for_pr_company
+# Telegram Bot for PR company (Mr.Эйч)
 
 
-cat create_db.sql | sqlite3 database.db
+curl https://api.telegram.org/bot675567567:AAFenUQz3O2lDRпкууSZQPQiHYniYfDuc/setWebhook?url=https://1792-94-131-111-6.ngrok-free.app/675567567:AAFenUQz3O2lDRпкууSZQPQiHYniYfDuc/
 
 
 #### Создание топика 
@@ -204,3 +204,46 @@ dictionary = json.loads(json_string.replace("'", '"'))
     # print(path_to_section_with_sub_directory)
     # print(get_questions_from_db('Студия|ВЕБ|Сайты'.split('|')[0], 'Студия|ВЕБ|Сайты'.split('|')[2], 'Студия|ВЕБ|Сайты'.split('|')[1]))
 
+###  Загрузить файл в БД
+
+    def add_document_to_db(user_id: int, tech_doc=None, cp_doc=None):
+        if tech_doc is not None and cp_doc is None:
+            execute(
+                sql='''INSERT INTO documents_of_clients (tech_doc, client_id) VALUES (%s, %s)''',
+                params=[(tech_doc, user_id)])
+        elif cp_doc is not None and tech_doc is None:
+            execute(
+                sql='''INSERT INTO documents_of_clients (CP_doc, client_id) VALUES (%s, %s)''',
+                params=[(cp_doc, user_id)])
+        else:
+            raise 'В аргументе должен быть всего 1 файл'
+    
+    
+    def get_document_from_db(user_id: int, tech_doc=None, cp_doc=None):
+        if tech_doc is not None and cp_doc is None:
+            doc = fetch_one(
+                sql='''SELECT tech_doc FROM documents_of_clients WHERE id = %s''',
+                params=(user_id,))
+        elif cp_doc is not None and tech_doc is None:
+            doc = fetch_one(
+                sql='''SELECT CP_doc FROM documents_of_clients WHERE id = %s''',
+                params=(user_id,))
+        else:
+            raise 'В аргументе должен быть всего 1 файл'
+        return doc
+    
+    if __name__ == '__main__':
+        pass
+        # with open('cp_document.docx', 'wb') as f:
+        #     x = get_document_from_db(5432693304, tech_doc=True)
+        #     f.write(x)
+    
+    
+    CREATE TABLE documents_of_clients (
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        id BIGINT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+        CP_doc BLOB,
+        tech_doc BLOB,
+        client_id BIGINT,
+        FOREIGN KEY(client_id) REFERENCES clients(id)
+    );

@@ -12,15 +12,14 @@ from handlers import callback
 from handlers.commands import start, \
      delete_state_, start_unauthorized
 from handlers.get_info_from_user import get_user_name, get_user_phone, phone_incorrect, get_user_company, \
-    get_answer_from_user, send_user_answers_to_db
-
+    get_answer_from_user, send_user_answers_to_db, next_question
 
 from services.db_data import get_data_briefings
 from services.states import MyStates
 from services.filters import CheckPhoneNumber, CheckConsent, \
     ContactForm, CheckFile, \
     CheckUserRegistration, CheckPathToSection, CheckPathToSectionWithoutSubDirectory, \
-    CheckPathToSectionWithSubDirectory, FinishPoll
+    CheckPathToSectionWithSubDirectory, FinishPoll, NextQuestion
 from handlers import dialog_with_operator
 
 logging.basicConfig(handlers=(logging.StreamHandler(),),
@@ -44,6 +43,7 @@ FILTERS = (custom_filters.StateFilter(bot),
            CheckPathToSectionWithSubDirectory(),
            CheckPathToSectionWithoutSubDirectory(),
            FinishPoll(),
+           NextQuestion(),
            )
 
 CALL_BACKS_FOR_BRIEFINGS = ['marketing', 'studio', 'creative', 'pr', 'Стратегия', 'research', 'subscription', 'web',
@@ -91,6 +91,8 @@ def register_functions_for_bot():
     bot.register_message_handler(state=MyStates.phone_number, callback=phone_incorrect, pass_bot=True,
                                  check_phone=False)
     bot.register_message_handler(state=MyStates.company, callback=get_user_company, pass_bot=True)
+    bot.register_message_handler(state=MyStates.answer_to_question, callback=next_question, pass_bot=True,
+                                 next_question=True)
     bot.register_message_handler(state=MyStates.answer_to_question, callback=get_answer_from_user, pass_bot=True,
                                  finish_poll=False)
     bot.register_message_handler(state=MyStates.answer_to_question, callback=send_user_answers_to_db, pass_bot=True,
@@ -100,8 +102,8 @@ def register_functions_for_bot():
 
     bot.register_callback_query_handler(func=lambda callback: callback.data == "scenario",
                                         callback=callback.callback_scenario, pass_bot=True)
-    bot.register_callback_query_handler(func=lambda callback: callback.data == "formation_of_the_cp",
-                                        callback=callback.callback_formation_of_the_cp, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == "terms_of_reference_and_commercial_offer",
+                                        callback=callback.callback_terms_of_reference_and_commercial_offer, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "chat_with_operator",
                                         callback=callback.callback_chat_with_operator, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "instant_messaging_service",
@@ -121,8 +123,8 @@ def register_functions_for_bot():
     bot.register_callback_query_handler(func=lambda callback: callback.data,
                                         callback=callback.callback_section_from_subcategory, pass_bot=True,
                                         path_to_section_with_sub_directory=True)
-    # bot.register_callback_query_handler(func=lambda callback: "question_" in callback.data,
-    #                                     callback=callback.callback_for_questions, pass_bot=True, check_user_registration=True, check_user_answer=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == 'back_to_questions',
+                                        callback=callback.callback_back_to_questions, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: "question_" in callback.data,
                                         callback=callback.callback_for_questions, pass_bot=True,
                                         check_user_registration=True)
@@ -139,6 +141,13 @@ def register_functions_for_bot():
                                         callback=callback.callback_cancel_from_inline_menu, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "change_answer",
                                         callback=callback.callback_for_change_answer, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == "terms_of_reference",
+                                        callback=callback.callback_terms_of_reference, pass_bot=True)
+
+    bot.register_callback_query_handler(func=lambda callback: callback.data == "commercial_offer",
+                                        callback=callback.callback_commercial_offer, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == "technical_exercise",
+                                        callback=callback.callback_technical_exercise, pass_bot=True)
 
 
 register_functions_for_bot()

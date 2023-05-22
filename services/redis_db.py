@@ -16,11 +16,11 @@ def get_keyboard_for_questions_from_redis(user_id: int):
     return json.loads(REDIS.get(f'keyboard_for_questions|{user_id}'))
 
 
-def set_max_questions_in_redis(user_id: int, number):
+def set_max_question_id_in_redis(user_id: int, number):
     REDIS.set(f'max_questions|{user_id}', number)
 
 
-def get_max_questions_from_redis(user_id: int):
+def get_max_question_id_in_redis(user_id: int):
     return int(REDIS.get(f'max_questions|{user_id}'))
 
 

@@ -11,7 +11,7 @@ from services.db_data import add_users_data_to_db, get_question_and_answers_from
 from services.redis_db import add_answers_to_list, get_user_answers, \
     get_question_id_from_redis, delete_user_answers_from_redis, get_keyboard_for_questions_from_redis, \
     get_next_question_callback_from_redis, set_question_id_in_redis, set_next_question_callback_in_redis, \
-    get_max_questions_from_redis
+    get_max_question_id_in_redis
 from services.states import MyStates
 
 logger = logging.getLogger(__name__)
@@ -64,32 +64,33 @@ def get_answer_from_user(message, bot):
         elif message.text == 'Интересы':
             bot.send_message(message.chat.id, f'Укажите интересы', reply_markup=keyboard_for_other_answers())
         return
-    elif message.text == 'Следующий вопрос':
-        callback = get_next_question_callback_from_redis(message.from_user.id)
-        question_id = callback.split('_')[1]
-        if int(question_id) <= get_max_questions_from_redis(message.from_user.id):
-            next_callback = f"{callback.split('_')[0]}_{int(callback.split('_')[1]) + 1}"
-            set_question_id_in_redis(user=message.from_user.id, question_id=question_id)
-            set_next_question_callback_in_redis(user=message.from_user.id, callback=next_callback)
-        elif int(question_id) > get_max_questions_from_redis(message.from_user.id):
-            remove_keyboard(message, bot, 'Вопросов в этом направлении больше, нет(')
-            start(message, bot)
-            return
-        question, answers = get_question_and_answers_from_db(question_id)
-        user_answer = get_user_answer(message.from_user.id, question_id)
-        if bool(user_answer):
-            user_answer = user_answer[0][0]
-            bot.send_message(message.chat.id, f'❓{question}?\n\nВаше ответ:{user_answer}',
-                             reply_markup=keyboard_for_answer(answers))
-            return
-        bot.set_state(message.from_user.id, MyStates.answer_to_question, message.from_user.id)
-        bot.send_message(message.chat.id, f'❓{question}?\n\nНапишите ответ и нажмите "✅ Отправить ответ"',
-                         reply_markup=keyboard_for_answer(answers))
-        # bot.delete_message(call.message.chat.id, call.message.id)
-
-        return
     add_answers_to_list(client_id=message.from_user.id, answer=message.text)
     bot.send_message(message.chat.id, f'Ответ принят, нажмите "✅ Отправить ответ" если больше нечего добавить')
+
+
+def next_question(message, bot):
+    callback_for_next_question = get_next_question_callback_from_redis(message.from_user.id)
+    next_question_id = callback_for_next_question.split('_')[1]
+    logger.info(f'Следующий ID {next_question_id}')
+    logger.info(f'Максимальный question id = {get_max_question_id_in_redis(message.from_user.id)}')
+    if int(next_question_id) <= get_max_question_id_in_redis(message.from_user.id):
+        next_callback = f"{callback_for_next_question.split('_')[0]}_{int(callback_for_next_question.split('_')[1]) + 1}"
+        set_question_id_in_redis(user=message.from_user.id, question_id=next_question_id)
+        set_next_question_callback_in_redis(user=message.from_user.id, callback=next_callback)
+    elif int(next_question_id) > get_max_question_id_in_redis(message.from_user.id):
+        remove_keyboard(message, bot, 'Вопросов в этом направлении больше, нет(')
+        start(message, bot)
+        return
+    question, answers = get_question_and_answers_from_db(next_question_id)
+    user_answer = get_user_answer(message.from_user.id, next_question_id)
+    if bool(user_answer):
+        user_answer = user_answer[0][0]
+        bot.send_message(message.chat.id, f'❓{question}?\n\nВаше ответ:{user_answer}',
+                         reply_markup=keyboard_for_answer(answers))
+        return
+    bot.set_state(message.from_user.id, MyStates.answer_to_question, message.from_user.id)
+    bot.send_message(message.chat.id, f'❓{question}?\n\nНапишите ответ и нажмите "✅ Отправить ответ"',
+                     reply_markup=keyboard_for_answer(answers))
 
 
 def send_user_answers_to_db(message, bot):
@@ -101,7 +102,8 @@ def send_user_answers_to_db(message, bot):
     bot.delete_state(message.from_user.id, message.chat.id)
     remove_keyboard(message, bot, 'Ваш ответ получен!')
     path = get_keyboard_for_questions_from_redis(message.from_user.id)
-    bot.send_message(message.chat.id, 'Выберите вопрос:', reply_markup=keyboard_for_questions(message.from_user.id, path=path))
+    bot.send_message(message.chat.id, 'Выберите вопрос:',
+                     reply_markup=keyboard_for_questions(message.from_user.id, path=path))
 
 
 def phone_incorrect(message, bot):
