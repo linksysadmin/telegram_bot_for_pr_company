@@ -13,4 +13,5 @@ class MyStates(StatesGroup):
     name = State()
     phone_number = State()
     company = State()
+    website = State()
     answer_to_question = State()

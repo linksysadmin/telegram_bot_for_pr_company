@@ -3,8 +3,7 @@ import re
 
 import telebot
 
-from config import REDIS
-from services.db_data import check_user_in_database, get_data_briefings, get_user_data_from_db
+from services.db_data import check_user_in_database, get_data_questions
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +12,7 @@ class CheckPathToSection(telebot.custom_filters.SimpleCustomFilter):
     key = 'path_to_section'
 
     def check(self, call):
-        if call.data in set(f'{i[1]}|{i[2]}' for i in get_data_briefings() if i[2] is not None):
+        if call.data in set(f'{i[1]}|{i[2]}' for i in get_data_questions() if i[2] is not None):
             return True
         else:
             return False
@@ -23,7 +22,7 @@ class CheckPathToSectionWithSubDirectory(telebot.custom_filters.SimpleCustomFilt
     key = 'path_to_section_with_sub_directory'
 
     def check(self, call):
-        if call.data in set(f'{i[1]}|{i[2]}|{i[3]}' for i in get_data_briefings() if i[2] is not None):
+        if call.data in set(f'{i[1]}|{i[2]}|{i[3]}' for i in get_data_questions() if i[2] is not None):
             return True
         else:
             return False
@@ -33,7 +32,7 @@ class CheckPathToSectionWithoutSubDirectory(telebot.custom_filters.SimpleCustomF
     key = 'path_to_section_without_sub_directory'
 
     def check(self, call):
-        if call.data in set(f'{i[1]}|{i[3]}' for i in get_data_briefings() if i[2] is None):
+        if call.data in set(f'{i[1]}|{i[3]}' for i in get_data_questions() if i[2] is None):
             return True
         else:
             return False
@@ -98,7 +97,6 @@ class NextQuestion(telebot.custom_filters.SimpleCustomFilter):
             return False
 
 
-
 class CheckConsent(telebot.custom_filters.SimpleCustomFilter):
     key = 'check_consent'
 
@@ -117,6 +115,3 @@ class CheckFile(telebot.custom_filters.SimpleCustomFilter):
             return True
         else:
             return False
-
-
-

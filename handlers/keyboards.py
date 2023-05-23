@@ -4,8 +4,8 @@ import logging
 from telebot import types
 
 from config import BASE_DIR
-from services.db_data import get_directions_from_db, get_sub_directions_from_db, \
-    get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers
+from services.db_data import get_directories, \
+    get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers, get_sub_directions
 from services.redis_db import add_keyboard_for_questions_in_redis, set_max_question_id_in_redis
 
 logger = logging.getLogger(__name__)
@@ -29,16 +29,16 @@ def keyboard_enter_menu_for_clients(doc=False):
 def keyboard_for_reference_and_commercial_offer():
     keyboard = types.InlineKeyboardMarkup(row_width=True)
     key1 = types.InlineKeyboardButton(text='📃 Тех.задания', callback_data='terms_of_reference')
-    key2 = types.InlineKeyboardButton(text='📑 Коммерческие предложения', callback_data='commercial_offer')
+    key2 = types.InlineKeyboardButton(text='📑 Коммерческие предложения', callback_data='commercial_offers')
     key3 = types.InlineKeyboardButton(text='Назад', callback_data='cancel_from_inline_menu')
     keyboard.add(key1, key2, key3)
     return keyboard
 
 
 def keyboard_for_terms_of_reference(user_id: int):
-    """ Ищем документы "Технического задания" в папке document_templates и отображаем даты """
+    """ Ищем документы "Технического задания" в папке documents и отображаем даты """
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-    directory = f'{BASE_DIR}/document_templates'
+    directory = f'{BASE_DIR}/documents'
     files = os.listdir(directory)
     matching_files = [file for file in files if file.startswith(f'ТЗ_')]
     for btn in matching_files:
@@ -50,9 +50,9 @@ def keyboard_for_terms_of_reference(user_id: int):
 
 
 def keyboard_for_commercial_offer(user_id: int):
-    """ Ищем документы "Технического задания" в папке document_templates и отображаем даты """
+    """ Ищем документы "Технического задания" в папке documents и отображаем даты """
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-    directory = f'{BASE_DIR}/document_templates'
+    directory = f'{BASE_DIR}/documents'
     files = os.listdir(directory)
     matching_files = [file for file in files if file.startswith(f'КП_')]
     for btn in matching_files:
@@ -65,33 +65,34 @@ def keyboard_for_commercial_offer(user_id: int):
 
 def keyboard_for_briefings():
     keyboard = types.InlineKeyboardMarkup()
-    list_of_directions = get_directions_from_db()
+    list_of_directions = get_directories()
     logger.info(f'Клавиатура выбора директорий - {list_of_directions}')
-    for i in list_of_directions:
-        keyboard.add(types.InlineKeyboardButton(text=i[0], callback_data=i[0]))
-        logger.info(f'В keyboard_for_scenario Созданы callbackи: {i[0]}')
-    cancel = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
+    for dir in list_of_directions:
+        keyboard.add(types.InlineKeyboardButton(text=dir, callback_data=dir))
+        logger.info(f'В keyboard_for_scenario Созданы callbackи: {dir}')
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_from_inline_menu')
     keyboard.add(cancel)
     return keyboard
 
 
 def keyboard_for_direction(direction):
     keyboard = types.InlineKeyboardMarkup()
-    list_of_sub_directions = get_sub_directions_from_db(direction)
+    list_of_sub_directions = get_sub_directions(direction)
     if list_of_sub_directions:
         logger.info(f'Клавиатура выбора поддиректорий - {list_of_sub_directions}')
         for sub_direction in list_of_sub_directions:
             keyboard.add(
-                types.InlineKeyboardButton(text=sub_direction[0], callback_data=f'{direction}|{sub_direction[0]}'))
-            logger.info(f'В keyboard_for_direction Созданы callbackи: {direction}|{sub_direction[0]}')
+                types.InlineKeyboardButton(text=sub_direction, callback_data=f'{direction}|{sub_direction}'))
+            logger.info(f'В keyboard_for_direction Созданы callbackи: {direction}|{sub_direction}')
     else:
         list_of_sections = get_sections_from_db(direction)
         logger.info(f'Клавиатура выбора секций вопросов - {list_of_sections}')
         for section in list_of_sections:
-            keyboard.add(types.InlineKeyboardButton(text=section[0], callback_data=f'{direction}|{section[0]}'))
-            logger.info(f'В keyboard_for_direction Созданы callbackи: {direction}|{section[0]}')
-    cancel = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
-    keyboard.add(cancel)
+            keyboard.add(types.InlineKeyboardButton(text=section, callback_data=f'{direction}|{section}'))
+            logger.info(f'В keyboard_for_direction Созданы callbackи: {direction}|{section}')
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_directions')
+    main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
+    keyboard.add(cancel, main_menu)
     return keyboard
 
 
@@ -99,11 +100,12 @@ def keyboard_for_sub_direction(path):
     logger.info(f'Клавиатура выбора подкатегорий')
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     list_of_subcategories = get_sections_from_db(path.split('|')[0], path.split('|')[1])
-    for i in list_of_subcategories:
-        keyboard.add(types.InlineKeyboardButton(text=i[0], callback_data=f'{path}|{i[0]}'))
-        logger.info(f'В keyboard_for_sub_direction: Созданы callbackи: {path}|{i[0]}')
-    cancel = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
-    keyboard.add(cancel)
+    for sub_dir in list_of_subcategories:
+        keyboard.add(types.InlineKeyboardButton(text=sub_dir, callback_data=f'{path}|{sub_dir}'))
+        logger.info(f'В keyboard_for_sub_direction: Созданы callbackи: {path}|{sub_dir}')
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_directions')
+    main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
+    keyboard.add(cancel, main_menu)
     return keyboard
 
 
@@ -127,9 +129,10 @@ def keyboard_for_questions(user_id: int, path: str):
     button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
     for row in button_rows:
         keyboard.row(*row)
-    technical_exercise = types.InlineKeyboardButton(text='Сформировать ТЗ', callback_data='technical_exercise')
-    cancel = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
-    keyboard.add(technical_exercise, cancel)
+    technical_exercise = types.InlineKeyboardButton(text='Сформировать ТЗ', callback_data=f'tex_{path}')
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_directions')
+    main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
+    keyboard.add(technical_exercise, cancel, main_menu)
     return keyboard
 
 

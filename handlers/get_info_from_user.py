@@ -32,19 +32,29 @@ def get_user_phone(message, bot):
     if message.contact is not None:
         phone = message.contact.phone_number
     bot.add_data(message.from_user.id, message.chat.id, phone=phone)
-    remove_keyboard(message, bot, 'Напишите название вашей компании')
+    remove_keyboard(message, bot, 'Укажите ваш Веб-сайт')
+    bot.set_state(message.chat.id, MyStates.website, message.from_user.id)
+
+
+def get_user_website(message, bot):
+    """ STATE 3 - Получение website от пользователя """
+    website = message.text
+    bot.add_data(message.from_user.id, message.chat.id, website=website)
+    bot.send_message(message.chat.id, 'Укажите название вашей компании©️')
     bot.set_state(message.chat.id, MyStates.company, message.from_user.id)
+    logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
 
 def get_user_company(message, bot):
-    """ STATE 3 - Получение компании от пользователя и отправка данных """
+    """ STATE 4 - Получение компании от пользователя и отправка данных """
     user_id = message.from_user.id
     company = message.text
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         logger.info(f'Данные, которые ввел пользователь: {data}')
         name = data['name']
         phone = data['phone']
-        add_users_data_to_db(user_id, name, phone, company)
+        website = data['website']
+        add_users_data_to_db(user_id, name, phone, company, website)
     bot.delete_state(message.from_user.id, message.chat.id)
     bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=name,
                                                                     company=message.text),
