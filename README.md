@@ -4,6 +4,25 @@
 curl https://api.telegram.org/bot675567567:AAFenUQz3O2lDRпкууSZQPQiHYniYfDuc/setWebhook?url=https://1792-94-131-111-6.ngrok-free.app/675567567:AAFenUQz3O2lDRпкууSZQPQiHYniYfDuc/
 
 
+
+### Задать и удалить команды:
+
+    start = types.BotCommand('start', 'Меню')
+    test = types.BotCommand('test', 'Тест')
+    bot.set_my_commands([start, test])
+
+или 
+
+    bot.set_my_commands(
+        commands=[
+            telebot.types.BotCommand("command1", "command1 description"),
+            telebot.types.BotCommand("command2", "command2 description")
+        ],    
+    bot.delete_my_commands(scope=None, language_code=None)
+    # check command
+    cmd = bot.get_my_commands(scope=None, language_code=None)
+    print([c.to_json() for c in cmd])
+
 #### Создание топика 
 
     bot.create_forum_topic(TELEGRAM_GROUP_CHAT_ID, name='Эйч|Брифинг|@Направление')
@@ -161,10 +180,10 @@ get_sections_from_db(callback.data.split('|')[0], callback.data.split('|')[1])[0
         keyboard.add(cancel)
         return keyboard
 
-import json
-json_string = "{'user_id': 34543543, 'add': '1'}"
-{'user_id': 34543543, 'add': '1'}
-dictionary = json.loads(json_string.replace("'", '"'))
+    import json
+    json_string = "{'user_id': 34543543, 'add': '1'}"
+    {'user_id': 34543543, 'add': '1'}
+    dictionary = json.loads(json_string.replace("'", '"'))
 
 
 
@@ -192,17 +211,8 @@ dictionary = json.loads(json_string.replace("'", '"'))
 
 ### Для тестов 
 
-    # print(get_questions_from_db('Студия', 'Сайты', 'ВЕБ'))
-    # path_to_section_without_sub_directory = set(f'{i[1]}|{i[2]}|{i[3]}' for i in get_data_briefings() if i[2] is None)
-    # path_to_section_with_sub_directory = set(f'{i[1]}|{i[2]}|{i[3]}' for i in get_data_briefings() if i[2] is not None)
-    # path_to_section = set(f'{i[1]}|{i[2]}' for i in get_data_briefings() if i[2] is not None)
-    #
-    # print(path_to_section)
-    # print(path_to_section_without_sub_directory)
-    # print(path_to_section_with_sub_directory)
-    # path_to_section_with_sub_directory = set(f'{i[1]}|{i[2]}|{i[3]}' for i in get_data_briefings() if i[2] is not None)
-    # print(path_to_section_with_sub_directory)
-    # print(get_questions_from_db('Студия|ВЕБ|Сайты'.split('|')[0], 'Студия|ВЕБ|Сайты'.split('|')[2], 'Студия|ВЕБ|Сайты'.split('|')[1]))
+
+
 
 ###  Загрузить файл в БД
 
@@ -247,3 +257,29 @@ dictionary = json.loads(json_string.replace("'", '"'))
         client_id BIGINT,
         FOREIGN KEY(client_id) REFERENCES clients(id)
     );
+
+
+
+### Создание опросников 
+
+    bot.send_message(message.chat.id, "Ответьте на вопрос")
+    answer_options = ["кофе", "чай", "спать", "сок"]
+
+    bot.send_poll(
+        chat_id=message.chat.id,
+        question="Чего бы вы хотели",
+        options=answer_options,
+        type="quiz",
+        correct_option_id=3,
+        explanation='Не тот вариант))',
+        is_anonymous=False,
+    )
+
+
+
+### Выборка из базы данных 
+
+    SELECT questions.id, questions.question_text, COALESCE(clients_briefings.user_response, 'Ответа нет') AS answer_text
+    FROM questions
+    LEFT JOIN clients_briefings ON questions.id = clients_briefings.question_id AND clients_briefings.client_id = 123
+    WHERE questions.id = 2;

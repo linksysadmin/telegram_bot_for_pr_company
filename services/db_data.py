@@ -1,3 +1,4 @@
+from typing import Union, Any
 import json
 import logging
 
@@ -13,8 +14,8 @@ def get_user_data_from_db(user_id: int):
     data = fetch_all(sql='SELECT * FROM clients WHERE id = %s',
                      params=(user_id,))
     return {'date_of_registration': data[0][0].strftime('%d %B %Y'), 'id': data[0][1], 'name': data[0][2],
-            'phone': data[0][3], 'company': data[0][4], 'website': data[0][5],
-            'tech_doc': bool(data[0][6]), 'cp_doc': bool(data[0][7])}
+            'tg_username': data[0][3], 'phone': data[0][4], 'company': data[0][5], 'website': data[0][6],
+            'tech_doc': bool(data[0][7]), 'cp_doc': bool(data[0][8])}
 
 
 def get_data_questions() -> list[tuple]:
@@ -76,6 +77,25 @@ def get_user_list_of_questions_informal_and_answers(user_id: int, directory: str
         params=(user_id, directory, section)
     )
     return result_from_db
+
+
+def update_info_about_user_docs_in_db(user_id: int, tech_doc: bool = None, cp_doc: bool = None):
+    if tech_doc is None and cp_doc is None:
+        raise ValueError("At least one of tech_doc or cp_doc must be provided")
+    elif tech_doc is not None:
+        execute(
+            sql='''UPDATE clients
+            SET tech_doc = %s
+            WHERE id = %s''',
+            params=[(tech_doc, user_id)]
+        )
+    elif cp_doc is not None:
+        execute(
+            sql='''UPDATE clients
+            SET cp_doc = %s
+            WHERE id = %s''',
+            params=[(cp_doc, user_id)]
+        )
 
 
 def delete_user_answers_in_section(user_id: int, directory: str, section: str):
@@ -146,24 +166,13 @@ def get_question_and_answers_from_db(id_question: int) -> tuple:
     return question, answers
 
 
-def add_users_data_to_db(user_id: int, name: str, phone: str, company: str, website: str, table=None):
+def add_clients_data_to_db(user_id: int, name: str, tg_username, phone: str, company: str, website: str):
     try:
-        if table is None:
-            execute(
-                sql='''INSERT INTO clients (id, name, phone, company, website)
-                     VALUES (%s, %s, %s, %s, %s)''',
-                params=[(user_id, name, phone, company, website)])
-            return True
-        else:
-            execute(
-                sql='''INSERT INTO {} (id, name, phone, company, website)
-                     VALUES (%s, %s, %s, %s, %s)'''.format(table),
-                params=[(user_id, name, phone, company, website)])
-            return True
-
-    except IntegrityError:
-        logger.warning(f'Уже есть этот пользователь в таблице {table}')
-        return False
+        execute(
+            sql='''INSERT INTO clients (id, name, tg_username, phone, company, website)
+                 VALUES (%s, %s, %s, %s, %s, %s)''',
+            params=[(user_id, name, tg_username, phone, company, website)])
+        return True
     except Exception as e:
         logger.error(e)
 
@@ -176,4 +185,4 @@ def add_user_answers_to_db(user_id: int, question_id: int, user_response: str):
 
 
 if __name__ == '__main__':
-    print(get_sub_directions('Маркетинг'))
+    add_clients_data_to_db(54326904, 'fawe', None, '5345435', 'fawe', 'wwww')

@@ -3,6 +3,7 @@ import re
 
 import telebot
 
+from config import OPERATOR_ID
 from services.db_data import check_user_in_database, get_data_questions
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,18 @@ class CheckUserRegistration(telebot.custom_filters.SimpleCustomFilter):
             return True
         else:
             return False
+
+
+class CheckOperator(telebot.custom_filters.SimpleCustomFilter):
+    key = 'check_operator'
+
+    def check(self, message):
+        if message.from_user.id == OPERATOR_ID:
+            return True
+        else:
+            return False
+
+
 
 
 # class CheckUserAnswer(telebot.custom_filters.SimpleCustomFilter):

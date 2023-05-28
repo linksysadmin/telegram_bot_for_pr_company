@@ -15,7 +15,8 @@ def keyboard_enter_menu_for_clients(doc=False):
     """Keyboard for main menu"""
     keyboard = types.InlineKeyboardMarkup(row_width=True)
     key1 = types.InlineKeyboardButton(text='🎲 Брифинг', callback_data='scenario')
-    key2 = types.InlineKeyboardButton(text='📝 Тех.задания и КП', callback_data='terms_of_reference_and_commercial_offer')
+    key2 = types.InlineKeyboardButton(text='📝 Мои тех.задания и КП',
+                                      callback_data='terms_of_reference_and_commercial_offer')
     key3 = types.InlineKeyboardButton(text='👨‍💻 Чат с оператором', callback_data='chat_with_operator')
     key4 = types.InlineKeyboardButton(text='💬 Сервис мгновенных сообщений', callback_data='instant_messaging_service')
     key5 = types.InlineKeyboardButton(text='📈 Выгрузка отчёта', callback_data='upload_report')
@@ -23,6 +24,16 @@ def keyboard_enter_menu_for_clients(doc=False):
     if doc is True:
         keyboard.add(key2)
     keyboard.add(key1, key3, key4, key5, key6)
+    return keyboard
+
+
+def keyboard_enter_menu_for_operator():
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    key1 = types.InlineKeyboardButton(text='Запросы', callback_data='requests')
+    key2 = types.InlineKeyboardButton(text='Клиенты', callback_data='clients')
+    key3 = types.InlineKeyboardButton(text='Задачи', callback_data='tasks')
+    key4 = types.InlineKeyboardButton(text='Настройки', callback_data='settings')
+    keyboard.add(key1, key2, key3, key4)
     return keyboard
 
 
@@ -38,9 +49,7 @@ def keyboard_for_reference_and_commercial_offer():
 def keyboard_for_terms_of_reference(user_id: int):
     """ Ищем документы "Технического задания" в папке documents и отображаем даты """
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-    directory = f'{BASE_DIR}/documents'
-    files = os.listdir(directory)
-    matching_files = [file for file in files if file.startswith(f'ТЗ_')]
+
     for btn in matching_files:
         keyboard.add(types.InlineKeyboardButton(text=f'{btn}', callback_data=f'{btn}'))
     cancel = types.InlineKeyboardButton(text='Назад', callback_data='terms_of_reference_and_commercial_offer')
@@ -181,14 +190,13 @@ def keyboard_send_phone():
 
 def keyboard_for_sex():
     """ Keyboard for choice the sex """
-    keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     key1 = types.KeyboardButton(text='Мужской')
     key2 = types.KeyboardButton(text='Женский')
     send = types.KeyboardButton(text="✅ Отправить ответ")
-    next = keyboard.add(types.KeyboardButton(text="Следующий вопрос"))
+    next = types.KeyboardButton(text="Следующий вопрос")
     cancel_button = types.KeyboardButton(text="Отменить")
-    keyboard.row(key1, key2)
-    keyboard.row(send, next, cancel_button)
+    keyboard.add(key1, key2, send, next, cancel_button)
     return keyboard
 
 
@@ -199,10 +207,10 @@ def keyboard_for_age():
     key2 = types.KeyboardButton(text='От 25 до 35')
     key3 = types.KeyboardButton(text='От 35 до 50')
     send = types.KeyboardButton(text="✅ Отправить ответ")
-    next = keyboard.add(types.KeyboardButton(text="Следующий вопрос"))
+    next = types.KeyboardButton(text="Следующий вопрос")
     cancel_button = types.KeyboardButton(text="Отменить")
-    keyboard.row(key1, key2, key3)
-    keyboard.row(send, next, cancel_button)
+    keyboard.add(key1, key2, key3)
+    keyboard.add(send, next, cancel_button)
     return keyboard
 
 
@@ -210,9 +218,9 @@ def keyboard_for_other_answers():
     """ Keyboard for choice the sex """
     keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     send = types.KeyboardButton(text="✅ Отправить ответ")
-    next = keyboard.add(types.KeyboardButton(text="Следующий вопрос"))
+    next = types.KeyboardButton(text="Следующий вопрос")
     cancel_button = types.KeyboardButton(text="Отменить")
-    keyboard.row(send, next, cancel_button)
+    keyboard.add(send, next, cancel_button)
     return keyboard
 
 

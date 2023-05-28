@@ -9,3 +9,4 @@ __pycache__
 static/documents/technical_tasks
 static/documents/commercial_offers
 
+static/conf.info

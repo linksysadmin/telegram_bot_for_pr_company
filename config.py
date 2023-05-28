@@ -22,5 +22,8 @@ MySQL_USER = os.getenv('MySQL_USER')
 MySQL_PASS = os.getenv('MySQL_PASS')
 MySQL_DB = os.getenv('MySQL_DB')
 
-
+COMMANDS_FOR_BOT = {
+    'start': 'Get used to the bot',
+    'help': 'Gives you information about the available commands'
+}
 

@@ -5,26 +5,25 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="408f61a6-9975-4ccc-b2f3-90f02b4ce47f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/handlers/callbacks_for_operator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/handlers/send_document_to_user.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services/files.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/create_db.sql" beforeDir="false" afterPath="$PROJECT_DIR$/create_db.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/document_templates/5814866367_КП_22_мая_2023.docx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/document_templates/logo-e01df794.svg" beforeDir="false" afterPath="$PROJECT_DIR$/static/documents/img/logo-e01df794.svg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/document_templates/t.docx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/document_templates/Бриф на (услуга) от (Компания).doc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/document_templates/КП.docx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/document_templates/КП_23_май_2023.docx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/document_templates/КП_29_май_2023.docx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/document_templates/ТЗ_23_май_2023.docx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/document_templates/ТЗ_28_май_2023.docx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/callback.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/callback.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/callback.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/callbacks_for_clients.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/commands.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/get_info_from_user.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/get_info_from_user.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/keyboards.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/text_messages.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/text_messages.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/db_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/db_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/document_generation.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/document_generation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/document_generation.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/services/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/filters.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/states.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/states.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/documents/templates/brief_templates.docx" beforeDir="false" afterPath="$PROJECT_DIR$/static/documents/templates/brief_templates.docx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,51 +51,40 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/inside/PycharmProjects/kwork_telegram_bot_for_KP/documents/templates&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "last_opened_file_path": "/home/inside/PycharmProjects/kwork_telegram_bot_for_KP/main.py",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
+  <component name="PyConsoleOptionsProvider">
+    <option name="myPythonConsoleState">
+      <console-settings module-name="kwork_telegram_bot_for_KP" is-module-sdk="true">
+        <option name="myUseModuleSdk" value="true" />
+        <option name="myModuleName" value="kwork_telegram_bot_for_KP" />
+      </console-settings>
+    </option>
+  </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/static/documents/technical_tasks" />
       <recent name="$PROJECT_DIR$/documents/templates" />
       <recent name="$PROJECT_DIR$/document_templates" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/bin" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/static/documents/commercial_offers" />
       <recent name="$PROJECT_DIR$/static/documents/img" />
       <recent name="$PROJECT_DIR$/static" />
       <recent name="$PROJECT_DIR$/documents/templates" />
       <recent name="$PROJECT_DIR$" />
-      <recent name="$PROJECT_DIR$/services" />
     </key>
   </component>
   <component name="RunManager" selected="Python.main">
-    <configuration name="callback" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="kwork_telegram_bot_for_KP" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/handlers" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/handlers/callback.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <configuration name="db_data" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="kwork_telegram_bot_for_KP" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -118,7 +106,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="document_generation" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="files" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="kwork_telegram_bot_for_KP" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -130,7 +118,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/services/document_generation.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/services/files.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -146,9 +134,10 @@
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="" />
+      <option name="SDK_HOME" value="$PROJECT_DIR$/venv/bin/python3.11" />
+      <option name="SDK_NAME" value="Python 3.11 (kwork_telegram_bot_for_KP)" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
+      <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="net.ashald.envfile">
@@ -170,63 +159,15 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="redis_db" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="kwork_telegram_bot_for_KP" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/services" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/services/redis_db.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="send_document" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="kwork_telegram_bot_for_KP" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/handlers" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/handlers/send_document.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <list>
       <item itemvalue="Python.main" />
-      <item itemvalue="Python.callback" />
       <item itemvalue="Python.db_data" />
-      <item itemvalue="Python.document_generation" />
-      <item itemvalue="Python.redis_db" />
-      <item itemvalue="Python.send_document" />
+      <item itemvalue="Python.files" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.document_generation" />
         <item itemvalue="Python.db_data" />
-        <item itemvalue="Python.redis_db" />
-        <item itemvalue="Python.send_document" />
-        <item itemvalue="Python.callback" />
+        <item itemvalue="Python.files" />
       </list>
     </recent_temporary>
   </component>
