@@ -1,9 +1,12 @@
 import json
+import logging
 
 from config import REDIS
 
 
-# Добавляем клиента в список ожидающих
+logger = logging.getLogger(__name__)
+
+
 def add_client_to_queue(client_id):
     REDIS.rpush('queue', client_id)
 
@@ -54,12 +57,16 @@ def get_next_question_callback_from_redis(user: int):
 
 
 def get_client_id():
-    return REDIS.lindex('queue', 0)
+    try:
+        return int(REDIS.lindex('queue', 0))
+    except Exception as e:
+        logger.error(f'Ошибка redis: {e}')
+        return None
 
 
 # Получаем следующего клиента из списка ожидающих
 def get_next_client_from_queue():
-    return REDIS.lpop('queue')
+    return int(REDIS.lpop('queue'))
 
 
 # Получаем состояние оператора
@@ -72,5 +79,17 @@ def set_operator_state(state):
     REDIS.set('operator_state', state)
 
 
+def set_last_file_path(user_id, path):
+    REDIS.set(f'{user_id}last_file_path', json.dumps(path))
+
+
+def get_last_file_path(user_id):
+    try:
+        return json.loads(REDIS.get(f'{user_id}last_file_path'))
+    except TypeError:
+        return False
+
+
 if __name__ == '__main__':
-    pass
+    print(get_client_id())
+    print(get_last_file_path(5432693304))

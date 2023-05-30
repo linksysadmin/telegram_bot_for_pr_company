@@ -2,8 +2,9 @@ import logging
 
 from telebot import apihelper
 
-from config import OPERATOR_ID
-from handlers.keyboards import keyboard_for_delete_dialogue, keyboard_for_operator, keyboard_enter_menu_for_clients
+from config import OPERATOR_ID, REDIS
+from handlers.keyboards import keyboard_for_delete_dialogue, keyboard_for_enter_dialogue, \
+    keyboard_enter_menu_for_clients, keyboard_for_menu_in_dialogue
 from handlers.text_messages import TEXT_MESSAGES
 from services.db_data import get_user_data_from_db
 from services.redis_db import get_operator_state, set_operator_state, add_client_to_queue, get_next_client_from_queue, \
@@ -11,13 +12,13 @@ from services.redis_db import get_operator_state, set_operator_state, add_client
 from services.states import MyStates
 
 logger = logging.getLogger(__name__)
-log_dialogue = logging.getLogger('logger_for_dialogue')
+log_dialogue_in_file = logging.getLogger('logger_for_dialogue')
 file_handler = logging.FileHandler('logs/dialogue.log')
 formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 file_handler.setFormatter(formatter)
-log_dialogue.addHandler(file_handler)
-log_dialogue.setLevel(logging.INFO)
-log_dialogue.propagate = False
+log_dialogue_in_file.addHandler(file_handler)
+log_dialogue_in_file.setLevel(logging.INFO)
+log_dialogue_in_file.propagate = False
 
 
 def callback_instant_messaging_service(call, bot):
@@ -27,7 +28,7 @@ def callback_instant_messaging_service(call, bot):
     if operator_state == b'free' or operator_state is None:
         logger.info(f'Запрос к оператору на диалог от клиента: {client_id}')
         bot.send_message(OPERATOR_ID, f'💬Запрос на диалог!🧨\n\nОт пользователя:\nID: {call.from_user.id}\n'
-                                      f'Имя: {call.from_user.first_name}', reply_markup=keyboard_for_operator())
+                                      f'Имя: {call.from_user.first_name}', reply_markup=keyboard_for_enter_dialogue())
     else:
         logger.info(f'Клиент {client_id} ожидает оператора в очереди')
     add_client_to_queue(client_id)
@@ -38,7 +39,8 @@ def callback_instant_messaging_service(call, bot):
 def callback_enter_into_a_dialog(call, bot):
     try:
         set_operator_state(b'busy')
-        client_id = int(get_client_id())
+        client_id = get_client_id()
+        logger.warning(client_id)
         bot.set_state(client_id, MyStates.dialogue_with_operator, client_id)
         bot.set_state(OPERATOR_ID, MyStates.dialogue_with_client, OPERATOR_ID)
         bot.delete_message(call.message.chat.id, call.message.id)
@@ -57,23 +59,31 @@ def send_request_to_operator(message, bot):
 
 
 def send_message_to_client(message, bot):
-    client_id = int(get_client_id())
+    client_id = get_client_id()
+    if message.document is not None:
+        bot.send_document(client_id, document=message.document.file_id)
+        return
     bot.send_message(client_id, f'💬Сообщение от оператора:\n\n{message.text}')
     logger.info(f'Состояние оператора - {bot.get_state(message.from_user.id, message.chat.id)}')
-    log_dialogue.info(f'Сообщение от оператора: {message.text}')
+    log_dialogue_in_file.info(f'Сообщение от оператора: {message.text}')
 
 
 def send_message_to_operator(message, bot):
+    if message.document is not None:
+        bot.send_document(OPERATOR_ID, document=message.document.file_id)
+        return
     bot.send_message(OPERATOR_ID, f'💬Сообщение от клиента:\n{message.from_user.id}\n\n{message.text}',
-                     reply_markup=keyboard_for_delete_dialogue())
+                     reply_markup=keyboard_for_menu_in_dialogue())
     logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
-    log_dialogue.info(f'Сообщение от клиента: {message.text}')
+    log_dialogue_in_file.info(f'Сообщение от клиента: {message.text}')
 
 
 def callback_cancel_from_dialog(call, bot):
     bot.delete_message(call.message.chat.id, call.message.id)
+
     try:
-        client_id = int(get_next_client_from_queue())
+        client_id = get_next_client_from_queue()
+        logger.info(f'Выход из диалога клиента: {client_id}')
     except TypeError:
         bot.send_message(OPERATOR_ID, f'Актуальных диалогов нет')
         return
@@ -94,13 +104,17 @@ def callback_cancel_from_dialog(call, bot):
         set_operator_state(b'free')
         logger.warning('Чат не существует')
     try:
-        next_client = int(get_client_id())
+        next_client = get_client_id()
+        if next_client is None:
+            set_operator_state(b'free')
+            logger.info('Оператор свободен')
+            return
         set_operator_state(b'busy')
         logger.info(f'ID следующего клиента - {next_client}')
 
         logger.info(f'Запрос к оператору на диалог от клиента: {next_client}')
         bot.send_message(OPERATOR_ID, f'💬Запрос на диалог!🧨\n\nОт пользователя:\nID: {next_client}\n'
-                         , reply_markup=keyboard_for_operator())
+                         , reply_markup=keyboard_for_enter_dialogue())
     except TypeError:
         # Если нет следующего клиента, оператор становится свободным
         set_operator_state(b'free')

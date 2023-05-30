@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
 import logging
-from logging.handlers import TimedRotatingFileHandler
+
 import flask
+import colorlog
 import telebot
 from telebot import custom_filters
 from telebot.storage import StateRedisStorage
@@ -23,12 +23,33 @@ from services.filters import CheckPhoneNumber, CheckConsent, \
     CheckPathToSectionWithSubDirectory, FinishPoll, NextQuestion, CheckOperator
 from handlers import dialog_with_operator
 
-logging.basicConfig(handlers=(logging.StreamHandler(),),
-                    format="%(name)s %(asctime)s - %(levelname)s - %(message)s",
-                    datefmt='%m.%d.%Y %H:%M:%S',
-                    level=logging.INFO)
+# logging.basicConfig(handlers=(logging.StreamHandler(),),
+#                     format="%(name)s %(asctime)s - %(levelname)s - %(message)s",
+#                     datefmt='%m.%d.%Y %H:%M:%S',
+#                     level=logging.INFO)
+#
+# logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
+formatter = colorlog.ColoredFormatter(
+    '%(log_color)s%(name)s %(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%m.%d.%Y %H:%M:%S',
+    log_colors={
+        'DEBUG': 'cyan',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'red,bg_white',
+    })
+
+# Создаем обработчик для вывода логов в консоль
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+
+logging.basicConfig(handlers=[console_handler], level=logging.INFO)
+
+# logger = colorlog.getLogger(__name__)
+# logger.setLevel(logging.INFO)
+
 
 bot = telebot.TeleBot(TELEGRAM_BOT_API_TOKEN, state_storage=StateRedisStorage(), parse_mode='HTML')
 
@@ -59,8 +80,6 @@ def register_functions_for_bot():
                                  check_user_registration=False)
     bot.register_message_handler(state="*", callback=delete_state_, commands=['cancel'], pass_bot=True)
     bot.register_message_handler(commands=['test'], callback=test_, pass_bot=True)
-
-
 
     """   Добавление фильтров сообщений   """
     for filter_ in FILTERS:
@@ -93,9 +112,8 @@ def register_functions_for_bot():
     """   Регистрация обработчиков нажатий на клавиатуру   """
     bot.register_callback_query_handler(func=lambda callback: callback.data == "scenario",
                                         callback=callback_scenario, pass_bot=True)
-    bot.register_callback_query_handler(
-        func=lambda callback: callback.data == "terms_of_reference_and_commercial_offer",
-        callback=callback_terms_of_reference_and_commercial_offer, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == "technical_tasks_and_commercial_offer",
+                                        callback=callback_technical_tasks_and_commercial_offer, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "chat_with_operator",
                                         callback=callback_chat_with_operator, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "instant_messaging_service",
@@ -133,14 +151,21 @@ def register_functions_for_bot():
                                         callback=dialog_with_operator.callback_cancel_from_dialog, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "change_answer",
                                         callback=callback_for_change_answer, pass_bot=True)
-    bot.register_callback_query_handler(func=lambda callback: callback.data == "terms_of_reference",
-                                        callback=callback_terms_of_reference, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == "technical_tasks",
+                                        callback=callback_technical_tasks, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "commercial_offers",
                                         callback=callback_commercial_offer, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: 'tex_' in callback.data,
-                                        callback=send_document_to_user.callback_technical_exercise, pass_bot=True)
-    bot.register_callback_query_handler(func=lambda callback: callback.data in ('requests', 'clients', 'tasks', 'settings'),
-                                        callback=callbacks_for_operator.callback_for_enter_menu, pass_bot=True)
+                                        callback=send_document_to_user.callback_for_registration_technical_exercise,
+                                        pass_bot=True)
+
+    bot.register_callback_query_handler(
+        func=lambda callback: callback.data in ('requests', 'clients', 'tasks', 'settings'),
+        callback=callbacks_for_operator.callback_for_enter_menu, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: 'send_file_' in callback.data,
+                                        callback=send_document_to_user.callback_for_send_file, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: 'client_grade_yes' or 'client_grade_yes' in callback.data,
+                                        callback=callbacks_for_clients.callback_for_grade, pass_bot=True)
 
 
 register_functions_for_bot()

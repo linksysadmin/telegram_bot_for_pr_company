@@ -1,11 +1,10 @@
-from typing import Union, Any
 import json
 import logging
 
 from mysql.connector import IntegrityError
 
 from config import REDIS
-from db import fetch_all, execute, fetch_one
+from db import fetch_all, execute
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +12,9 @@ logger = logging.getLogger(__name__)
 def get_user_data_from_db(user_id: int):
     data = fetch_all(sql='SELECT * FROM clients WHERE id = %s',
                      params=(user_id,))
-    return {'date_of_registration': data[0][0].strftime('%d %B %Y'), 'id': data[0][1], 'name': data[0][2],
+    return {'date_of_registration': data[0][0].strftime('%d-%m-%Y'), 'id': data[0][1], 'name': data[0][2],
             'tg_username': data[0][3], 'phone': data[0][4], 'company': data[0][5], 'website': data[0][6],
-            'tech_doc': bool(data[0][7]), 'cp_doc': bool(data[0][8])}
+            'documents': data[0][7]}
 
 
 def get_data_questions() -> list[tuple]:
@@ -76,26 +75,16 @@ def get_user_list_of_questions_informal_and_answers(user_id: int, directory: str
           WHERE cb.client_id = %s AND q.direction = %s AND q.section_name = %s''',
         params=(user_id, directory, section)
     )
-    return result_from_db
+    questions = [question[0] for question in result_from_db]
+    answers = [answer[1] for answer in result_from_db]
+    return questions, answers
 
 
-def update_info_about_user_docs_in_db(user_id: int, tech_doc: bool = None, cp_doc: bool = None):
-    if tech_doc is None and cp_doc is None:
-        raise ValueError("At least one of tech_doc or cp_doc must be provided")
-    elif tech_doc is not None:
-        execute(
-            sql='''UPDATE clients
-            SET tech_doc = %s
-            WHERE id = %s''',
-            params=[(tech_doc, user_id)]
-        )
-    elif cp_doc is not None:
-        execute(
-            sql='''UPDATE clients
-            SET cp_doc = %s
-            WHERE id = %s''',
-            params=[(cp_doc, user_id)]
-        )
+def update_info_about_user_docs_in_db(user_id: int, documents: bool):
+    execute(
+        sql='''UPDATE clients SET documents = %s WHERE id = %s''',
+        params=[(documents, user_id)]
+    )
 
 
 def delete_user_answers_in_section(user_id: int, directory: str, section: str):
@@ -184,5 +173,43 @@ def add_user_answers_to_db(user_id: int, question_id: int, user_response: str):
         params=[(user_id, question_id, user_response)])
 
 
+def get_info_about_user_files_from_db(user_id, type_document: str):
+    match type_document:
+        case 'technical_tasks' | 'commercial_offers':
+            doc_info = fetch_all(
+                sql='''SELECT * FROM {} WHERE client_id = %s'''.format(type_document),
+                params=(user_id,))
+            return [{'create': item[1], 'user_id': item[2], 'filename': item[3]} for item in doc_info]
+        case _:
+            raise ValueError("Неверное значение type_document. Должно быть 'commercial_offers' или 'technical_tasks' ")
+
+
+def add_file_to_db(user_id: int, type_document: str, filename: str) -> None:
+    match type_document:
+        case 'technical_tasks' | 'commercial_offers':
+            try:
+                execute(
+                    sql='''INSERT INTO {} (client_id, filename)
+                 VALUES (%s, %s)'''.format(type_document),
+                    params=[(user_id, filename)])
+            except IntegrityError:
+                logger.error('Пользователя не существует в базе данных')
+        case _:
+            raise ValueError("Неверное значение type_document. Должно быть 'commercial_offers' или 'technical_tasks' ")
+
+
+def get_list_of_files_from_db(user_id, type_document: str):
+    match type_document:
+        case 'technical_tasks' | 'commercial_offers':
+            path_list = fetch_all(
+                sql='''SELECT filename FROM {} WHERE client_id = %s'''.format(type_document),
+                params=(user_id,))
+            path_list = [path[0] for path in path_list]
+            return path_list
+        case _:
+            raise ValueError("Неверное значение type_document. Должно быть 'commercial_offers' или 'technical_tasks' ")
+
+
 if __name__ == '__main__':
-    add_clients_data_to_db(54326904, 'fawe', None, '5345435', 'fawe', 'wwww')
+    add_file_to_db(5432693304, type_document='technical_tasks', filename='ООО_Стратегия_5432693304.docx')
+    print(get_info_about_user_files_from_db(5432693304, 'technical_tasks'))

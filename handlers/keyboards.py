@@ -1,9 +1,7 @@
-import os
 import logging
 
 from telebot import types
 
-from config import BASE_DIR
 from services.db_data import get_directories, \
     get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers, get_sub_directions
 from services.redis_db import add_keyboard_for_questions_in_redis, set_max_question_id_in_redis
@@ -14,16 +12,16 @@ logger = logging.getLogger(__name__)
 def keyboard_enter_menu_for_clients(doc=False):
     """Keyboard for main menu"""
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-    key1 = types.InlineKeyboardButton(text='🎲 Брифинг', callback_data='scenario')
+    key1 = types.InlineKeyboardButton(text='📋 Составить ТЗ', callback_data='scenario')
     key2 = types.InlineKeyboardButton(text='📝 Мои тех.задания и КП',
-                                      callback_data='terms_of_reference_and_commercial_offer')
+                                      callback_data='technical_tasks_and_commercial_offer')
     key3 = types.InlineKeyboardButton(text='👨‍💻 Чат с оператором', callback_data='chat_with_operator')
-    key4 = types.InlineKeyboardButton(text='💬 Сервис мгновенных сообщений', callback_data='instant_messaging_service')
-    key5 = types.InlineKeyboardButton(text='📈 Выгрузка отчёта', callback_data='upload_report')
-    key6 = types.InlineKeyboardButton(text='🤳 Блог', callback_data='blog')
+    key4 = types.InlineKeyboardButton(text='💬 Поставить задачу', callback_data='instant_messaging_service')
+    key5 = types.InlineKeyboardButton(text='🎲 Игры', callback_data='games')
+    # key5 = types.InlineKeyboardButton(text='🤳 Блог', callback_data='blog')
     if doc is True:
         keyboard.add(key2)
-    keyboard.add(key1, key3, key4, key5, key6)
+    keyboard.add(key1, key3, key4, key5)
     return keyboard
 
 
@@ -39,34 +37,32 @@ def keyboard_enter_menu_for_operator():
 
 def keyboard_for_reference_and_commercial_offer():
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-    key1 = types.InlineKeyboardButton(text='📃 Тех.задания', callback_data='terms_of_reference')
+    key1 = types.InlineKeyboardButton(text='📃 Тех.задания', callback_data='technical_tasks')
     key2 = types.InlineKeyboardButton(text='📑 Коммерческие предложения', callback_data='commercial_offers')
-    key3 = types.InlineKeyboardButton(text='Назад', callback_data='cancel_from_inline_menu')
-    keyboard.add(key1, key2, key3)
+    key3 = types.InlineKeyboardButton(text='📈 Отчеты', callback_data='upload_report')
+    key4 = types.InlineKeyboardButton(text='Назад', callback_data='cancel_from_inline_menu')
+    keyboard.add(key1, key2, key3, key4)
     return keyboard
 
 
-def keyboard_for_terms_of_reference(user_id: int):
+def keyboard_for_technical_tasks(list_of_files: list):
     """ Ищем документы "Технического задания" в папке documents и отображаем даты """
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-
-    for btn in matching_files:
-        keyboard.add(types.InlineKeyboardButton(text=f'{btn}', callback_data=f'{btn}'))
-    cancel = types.InlineKeyboardButton(text='Назад', callback_data='terms_of_reference_and_commercial_offer')
+    for file in list_of_files:
+        keyboard.add(types.InlineKeyboardButton(text=f'{file}', callback_data=f'send_file_{file}'))
+        print(f'send_file_{file}')
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='technical_tasks_and_commercial_offer')
     main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
     keyboard.row(cancel, main_menu)
     return keyboard
 
 
-def keyboard_for_commercial_offer(user_id: int):
-    """ Ищем документы "Технического задания" в папке documents и отображаем даты """
+def keyboard_for_commercial_offer(list_of_files: list):
+    """ Ищем документы "Коммерческие предложения" в папке documents и отображаем даты """
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-    directory = f'{BASE_DIR}/documents'
-    files = os.listdir(directory)
-    matching_files = [file for file in files if file.startswith(f'КП_')]
-    for btn in matching_files:
-        keyboard.add(types.InlineKeyboardButton(text=f'{btn}', callback_data=f'{btn}'))
-    cancel = types.InlineKeyboardButton(text='Назад', callback_data='terms_of_reference_and_commercial_offer')
+    for file in list_of_files:
+        keyboard.add(types.InlineKeyboardButton(text=f'{file}', callback_data=f'send_file_{file}'))
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='technical_tasks_and_commercial_offer')
     main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
     keyboard.row(cancel, main_menu)
     return keyboard
@@ -78,7 +74,6 @@ def keyboard_for_briefings():
     logger.info(f'Клавиатура выбора директорий - {list_of_directions}')
     for dir in list_of_directions:
         keyboard.add(types.InlineKeyboardButton(text=dir, callback_data=dir))
-        logger.info(f'В keyboard_for_scenario Созданы callbackи: {dir}')
     cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_from_inline_menu')
     keyboard.add(cancel)
     return keyboard
@@ -146,7 +141,6 @@ def keyboard_for_questions(user_id: int, path: str):
 
 
 def keyboard_for_answer(answers):
-    logger.info(f'Клавиатура ответов')
     keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     for answer in answers:
         keyboard.add(types.KeyboardButton(text=answer))
@@ -166,7 +160,7 @@ def keyboard_for_change_answer():
     return keyboard
 
 
-def keyboard_for_operator():
+def keyboard_for_enter_dialogue():
     keyboard = types.InlineKeyboardMarkup(row_width=True)
     key1 = types.InlineKeyboardButton(text='✅Вступить в диалог', callback_data='enter_into_a_dialog')
     keyboard.add(key1)
@@ -221,6 +215,26 @@ def keyboard_for_other_answers():
     next = types.KeyboardButton(text="Следующий вопрос")
     cancel_button = types.KeyboardButton(text="Отменить")
     keyboard.add(send, next, cancel_button)
+    return keyboard
+
+
+def keyboard_for_clients_in_brief():
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    key1 = types.InlineKeyboardButton(text='Да', callback_data='client_grade_yes')
+    key2 = types.InlineKeyboardButton(text='Пока нет', callback_data='client_grade_no')
+    menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
+    keyboard.add(key1, key2, menu)
+    return keyboard
+
+
+def keyboard_for_menu_in_dialogue():
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    tech_tasks = types.InlineKeyboardButton(text='Технические задания и брифы', callback_data='technical_tasks_for_operator')
+    commercial_offers = types.InlineKeyboardButton(text='Коммерческие предложения', callback_data='commercial_offers_for_operator')
+    reports = types.InlineKeyboardButton(text='Отчеты', callback_data='reports')
+    documents = types.InlineKeyboardButton(text='Документы', callback_data='documents')
+    cancel = types.InlineKeyboardButton(text='❌Выйти из диалога', callback_data='cancel_from_dialog')
+    keyboard.add(tech_tasks, commercial_offers, reports, documents, cancel)
     return keyboard
 
 

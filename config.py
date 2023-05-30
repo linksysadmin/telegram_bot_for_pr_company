@@ -27,3 +27,6 @@ COMMANDS_FOR_BOT = {
     'help': 'Gives you information about the available commands'
 }
 
+
+DIR_FOR_TECHNICAL_TASKS = f'{BASE_DIR}/static/documents/technical_tasks'
+DIR_FOR_COMMERCIAL_OFFERS = f'{BASE_DIR}/static/documents/commercial_offers'

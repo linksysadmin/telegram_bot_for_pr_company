@@ -20,7 +20,7 @@ def start(message, bot):
         bot.delete_state(message.from_user.id, message.chat.id)
         remove_keyboard(message, bot, 'Отменено')
     user_data = get_user_data_from_db(message.from_user.id)
-    if user_data['tech_doc'] or user_data['cp_doc']:
+    if user_data['documents']:
         bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=user_data['name'],
                                                                         company=user_data['company']),
                          reply_markup=keyboard_enter_menu_for_clients(doc=True))
