@@ -164,6 +164,9 @@ def register_functions_for_bot():
         callback=callbacks_for_operator.callback_for_enter_menu, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: 'send_file_' in callback.data,
                                         callback=send_document_to_user.callback_for_send_file, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == 'technical_tasks_for_operator',
+                                        callback=callbacks_for_operator.callback_technical_tasks_for_operator,
+                                        pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: 'client_grade_yes' or 'client_grade_yes' in callback.data,
                                         callback=callbacks_for_clients.callback_for_grade, pass_bot=True)
 

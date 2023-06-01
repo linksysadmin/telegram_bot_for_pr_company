@@ -3,12 +3,15 @@ import logging
 
 from config import REDIS
 
-
 logger = logging.getLogger(__name__)
 
 
 def add_client_to_queue(client_id):
-    REDIS.rpush('queue', client_id)
+    if REDIS.lpos('queue', client_id) is None:    # Check if the client_id already exists in the queue
+        REDIS.rpush('queue', client_id)  # If the client_id does not exist in the queue, add it to the end of the list
+        return True
+    else:
+        return False
 
 
 def add_keyboard_for_questions_in_redis(user_id: int, path):
@@ -28,7 +31,7 @@ def get_max_question_id_in_redis(user_id: int):
 
 
 def add_answers_to_list(client_id, answer):
-    REDIS.rpush(f'answers_list:{client_id}', answer)
+    REDIS.rpush(f'answers_list:{client_id}', answer)  # rpush добавляет в хвост.
 
 
 def get_user_answers(user: int):
@@ -58,15 +61,14 @@ def get_next_question_callback_from_redis(user: int):
 
 def get_client_id():
     try:
-        return int(REDIS.lindex('queue', 0))
-    except Exception as e:
-        logger.error(f'Ошибка redis: {e}')
-        return None
+        return int(REDIS.lindex('queue', 0))  # вернуть первый элемент списка
+    except Exception:
+        logger.warning(f'В очереди больше нет никого')
 
 
 # Получаем следующего клиента из списка ожидающих
 def get_next_client_from_queue():
-    return int(REDIS.lpop('queue'))
+    return int(REDIS.lpop('queue'))  # Удаляет и возвращает первый элемент списка, сохраненного в key.
 
 
 # Получаем состояние оператора
@@ -91,5 +93,4 @@ def get_last_file_path(user_id):
 
 
 if __name__ == '__main__':
-    print(get_client_id())
-    print(get_last_file_path(5432693304))
+    pass

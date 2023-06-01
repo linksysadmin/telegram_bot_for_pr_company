@@ -3,7 +3,7 @@ import time
 
 from telebot import types
 
-from config import COMMANDS_FOR_BOT
+from config import COMMANDS_FOR_BOT, OPERATOR_ID
 from handlers.text_messages import TEXT_MESSAGES
 from handlers.keyboards import remove_keyboard, keyboard_enter_menu_for_clients, \
     keyboard_for_questions, keyboard_enter_menu_for_operator
@@ -16,19 +16,19 @@ logger = logging.getLogger(__name__)
 
 def start(message, bot):
     logger.info(f'User {message.from_user.first_name} (id: {message.from_user.id}) started a conversation')
-    if bot.get_state(message.from_user.id, message.chat.id) is not None:
+    user_data = get_user_data_from_db(message.from_user.id)
+    reply_markup = keyboard_enter_menu_for_clients(doc=user_data['documents'])
+    if bot.get_state(message.from_user.id, message.chat.id) == 'MyStates:dialogue_with_operator':
+        if user_data['documents']:
+            text_message = TEXT_MESSAGES['start'].format(username=user_data['name'], company=user_data['company'])
+        else:
+            text_message = TEXT_MESSAGES['start'].format(username=user_data['name'], company=user_data['company'])
+        bot.send_message(message.chat.id, text_message, reply_markup=reply_markup)
+    else:
         bot.delete_state(message.from_user.id, message.chat.id)
         remove_keyboard(message, bot, 'Отменено')
-    user_data = get_user_data_from_db(message.from_user.id)
-    if user_data['documents']:
-        bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=user_data['name'],
-                                                                        company=user_data['company']),
-                         reply_markup=keyboard_enter_menu_for_clients(doc=True))
-        return
-    else:
-        bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=user_data['name'],
-                                                                        company=user_data['company']),
-                         reply_markup=keyboard_enter_menu_for_clients())
+        bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=user_data['name'], company=user_data['company']),
+                         reply_markup=reply_markup)
     logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
 
@@ -53,16 +53,19 @@ def start_unauthorized(message, bot):
 
 def start_for_operator(message, bot):
     logger.info(f'Operator {message.from_user.first_name} (id: {message.from_user.id}) started a conversation')
-    if bot.get_state(message.from_user.id, message.chat.id) is not None:
+    state = bot.get_state(message.from_user.id, message.chat.id)
+    if state == 'MyStates:dialogue_with_client':
+        bot.send_message(message.chat.id, TEXT_MESSAGES['start_for_operator'],
+                         reply_markup=keyboard_enter_menu_for_operator())
+    else:
         bot.delete_state(message.from_user.id, message.chat.id)
         remove_keyboard(message, bot, 'Отменено')
-    bot.send_message(message.chat.id, TEXT_MESSAGES['start_for_operator'],
-                     reply_markup=keyboard_enter_menu_for_operator())
+        bot.send_message(message.chat.id, TEXT_MESSAGES['start_for_operator'],
+                         reply_markup=keyboard_enter_menu_for_operator())
     logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
 
 def test_(message, bot):
-
     logger.info(f'TEST command')
     bot.delete_state(message.from_user.id, message.chat.id)
     # bot.send_chat_action(message.from_user.id, action="upload_document")

@@ -34,7 +34,7 @@ def callback_technical_tasks(call, bot):
     else:
         text = 'Выберите какой файл вы хотите получить:'
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text,
-                          reply_markup=keyboard_for_technical_tasks(list_of_files))
+                          reply_markup=keyboard_for_technical_tasks(list_of_files, user_id))
 
 
 def callback_commercial_offer(call, bot):

@@ -2,6 +2,7 @@ import logging
 
 from telebot import types
 
+from config import OPERATOR_ID
 from services.db_data import get_directories, \
     get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers, get_sub_directions
 from services.redis_db import add_keyboard_for_questions_in_redis, set_max_question_id_in_redis
@@ -45,12 +46,13 @@ def keyboard_for_reference_and_commercial_offer():
     return keyboard
 
 
-def keyboard_for_technical_tasks(list_of_files: list):
+def keyboard_for_technical_tasks(list_of_files: list, operator: bool = None):
     """ Ищем документы "Технического задания" в папке documents и отображаем даты """
     keyboard = types.InlineKeyboardMarkup(row_width=True)
     for file in list_of_files:
         keyboard.add(types.InlineKeyboardButton(text=f'{file}', callback_data=f'send_file_{file}'))
-        print(f'send_file_{file}')
+    if operator:
+        return keyboard
     cancel = types.InlineKeyboardButton(text='Назад', callback_data='technical_tasks_and_commercial_offer')
     main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
     keyboard.row(cancel, main_menu)
