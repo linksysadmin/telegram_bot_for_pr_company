@@ -15,20 +15,20 @@ logger = logging.getLogger(__name__)
 
 
 def start(message, bot):
-    logger.info(f'User {message.from_user.first_name} (id: {message.from_user.id}) started a conversation')
-    user_data = get_user_data_from_db(message.from_user.id)
-    reply_markup = keyboard_enter_menu_for_clients(doc=user_data['documents'])
-    if bot.get_state(message.from_user.id, message.chat.id) == 'MyStates:dialogue_with_operator':
-        if user_data['documents']:
-            text_message = TEXT_MESSAGES['start'].format(username=user_data['name'], company=user_data['company'])
-        else:
-            text_message = TEXT_MESSAGES['start'].format(username=user_data['name'], company=user_data['company'])
-        bot.send_message(message.chat.id, text_message, reply_markup=reply_markup)
+    user_id = message.from_user.id
+    user_data = get_user_data_from_db(user_id)
+    has_documents = bool(user_data['documents'])
+    keyboard = keyboard_enter_menu_for_clients(doc=has_documents)
+    client_state = bot.get_state(user_id, message.chat.id)
+    text_message = TEXT_MESSAGES['start'].format(username=user_data['name'], company=user_data['company'])
+    if client_state is None or client_state == 'MyStates:dialogue_with_operator':
+        bot.send_message(message.chat.id, text_message, reply_markup=keyboard)
+
     else:
-        bot.delete_state(message.from_user.id, message.chat.id)
+        bot.delete_state(user_id, message.chat.id)
         remove_keyboard(message, bot, 'Отменено')
-        bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=user_data['name'], company=user_data['company']),
-                         reply_markup=reply_markup)
+        bot.send_message(message.chat.id, text_message, reply_markup=keyboard)
+
     logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
 
@@ -54,7 +54,7 @@ def start_unauthorized(message, bot):
 def start_for_operator(message, bot):
     logger.info(f'Operator {message.from_user.first_name} (id: {message.from_user.id}) started a conversation')
     state = bot.get_state(message.from_user.id, message.chat.id)
-    if state == 'MyStates:dialogue_with_client':
+    if state is None or state == 'MyStates:dialogue_with_client':
         bot.send_message(message.chat.id, TEXT_MESSAGES['start_for_operator'],
                          reply_markup=keyboard_enter_menu_for_operator())
     else:

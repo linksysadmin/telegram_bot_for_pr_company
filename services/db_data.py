@@ -1,8 +1,6 @@
 import json
 import logging
 
-from mysql.connector import IntegrityError
-
 from config import REDIS
 from db import fetch_all, execute
 
@@ -184,20 +182,6 @@ def get_info_about_user_files_from_db(user_id, type_document: str):
             raise ValueError("Неверное значение type_document. Должно быть 'commercial_offers' или 'technical_tasks' ")
 
 
-def add_file_to_db(user_id: int, type_document: str, filename: str) -> None:
-    match type_document:
-        case 'technical_tasks' | 'commercial_offers':
-            try:
-                execute(
-                    sql='''INSERT INTO {} (client_id, filename)
-                 VALUES (%s, %s)'''.format(type_document),
-                    params=[(user_id, filename)])
-            except IntegrityError:
-                logger.error('Пользователя не существует в базе данных')
-        case _:
-            raise ValueError("Неверное значение type_document. Должно быть 'commercial_offers' или 'technical_tasks' ")
-
-
 def get_list_of_files_from_db(user_id, type_document: str):
     match type_document:
         case 'technical_tasks' | 'commercial_offers':
@@ -208,8 +192,3 @@ def get_list_of_files_from_db(user_id, type_document: str):
             return path_list
         case _:
             raise ValueError("Неверное значение type_document. Должно быть 'commercial_offers' или 'technical_tasks' ")
-
-
-if __name__ == '__main__':
-    add_file_to_db(5432693304, type_document='technical_tasks', filename='ООО_Стратегия_5432693304.docx')
-    print(get_info_about_user_files_from_db(5432693304, 'technical_tasks'))

@@ -49,26 +49,8 @@ CREATE TABLE clients_briefings (
 );
 
 
-CREATE TABLE commercial_offers (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    client_id BIGINT NOT NULL,
-    filename VARCHAR(255),
-    FOREIGN KEY(client_id) REFERENCES clients(id)
-);
+CREATE INDEX clients_briefings_index ON clients_briefings(client_id);
 
-
-CREATE TABLE technical_tasks (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    client_id BIGINT NOT NULL,
-    filename VARCHAR(255),
-    FOREIGN KEY(client_id) REFERENCES clients(id)
-);
-
-
-CREATE INDEX commercial_offers_index ON commercial_offers(client_id);
-CREATE INDEX technical_orders_index ON technical_tasks(client_id);
 
 INSERT INTO questions (direction, sub_direction, section_name, question_number, question_text, informal_question, answer)
 VALUES

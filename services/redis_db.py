@@ -6,12 +6,35 @@ from config import REDIS
 logger = logging.getLogger(__name__)
 
 
+def get_queue_of_clients():
+    list_of_binary = REDIS.lrange('queue', 0, -1)
+    return [int(num) for num in list_of_binary]
+
+
+def get_first_client_from_queue():
+    try:
+        return int(REDIS.lindex('queue', 0))  # вернуть первый элемент списка
+    except Exception:
+        logger.warning(f'В очереди больше нет никого')
+
+
+# Получаем следующего клиента из списка ожидающих
+def get_first_client_and_delete_from_queue():
+    return int(REDIS.lpop('queue'))  # Удаляет и возвращает первый элемент списка, сохраненного в key.
+
+
 def add_client_to_queue(client_id):
-    if REDIS.lpos('queue', client_id) is None:    # Check if the client_id already exists in the queue
+    if REDIS.lpos('queue', client_id) is None:  # Check if the client_id already exists in the queue
         REDIS.rpush('queue', client_id)  # If the client_id does not exist in the queue, add it to the end of the list
         return True
     else:
         return False
+
+
+def move_client_to_first_place_in_queue(client_id):
+    REDIS.lrem('queue', 0, client_id)
+    REDIS.lpush('queue', client_id)
+    print(REDIS.lrange('queue', 0, -1))
 
 
 def add_keyboard_for_questions_in_redis(user_id: int, path):
@@ -59,18 +82,6 @@ def get_next_question_callback_from_redis(user: int):
     return json.loads(REDIS.get(f'next_question_callback_in_redis:{user}'))
 
 
-def get_client_id():
-    try:
-        return int(REDIS.lindex('queue', 0))  # вернуть первый элемент списка
-    except Exception:
-        logger.warning(f'В очереди больше нет никого')
-
-
-# Получаем следующего клиента из списка ожидающих
-def get_next_client_from_queue():
-    return int(REDIS.lpop('queue'))  # Удаляет и возвращает первый элемент списка, сохраненного в key.
-
-
 # Получаем состояние оператора
 def get_operator_state():
     return REDIS.get('operator_state')
@@ -93,4 +104,5 @@ def get_last_file_path(user_id):
 
 
 if __name__ == '__main__':
-    pass
+    print(get_queue_of_clients())
+    move_client_to_first_place_in_queue(6003832270)

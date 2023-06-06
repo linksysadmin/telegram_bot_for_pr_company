@@ -5,8 +5,8 @@ from telebot import apihelper
 from config import OPERATOR_ID
 from handlers.keyboards import keyboard_for_delete_dialogue, keyboard_for_enter_dialogue, \
     keyboard_enter_menu_for_clients, keyboard_for_menu_in_dialogue
-from services.redis_db import get_operator_state, set_operator_state, add_client_to_queue, get_next_client_from_queue, \
-    get_client_id
+from services.redis_db import get_operator_state, set_operator_state, add_client_to_queue, get_first_client_and_delete_from_queue, \
+    get_first_client_from_queue
 from services.states import MyStates
 
 logger = logging.getLogger(__name__)
@@ -36,6 +36,7 @@ def callback_instant_messaging_service(call, bot):
         case True:
             bot.send_message(call.message.chat.id, 'Подождите пока оператор к вам присоединится...')
         case _:
+            logger.info('Повторный запрос, не дожидаясь ответа на предыдущий')
             bot.send_message(call.message.chat.id,
                              'Вы уже в очереди подождите пожалуйста, пока оператор👨 ответит вам ‍💻😊')
 
@@ -43,7 +44,7 @@ def callback_instant_messaging_service(call, bot):
 def callback_enter_into_a_dialog(call, bot):
     try:
         set_operator_state(b'busy')
-        client_id = get_client_id()
+        client_id = get_first_client_from_queue()
         logger.warning(client_id)
         bot.set_state(client_id, MyStates.dialogue_with_operator, client_id)
         bot.set_state(OPERATOR_ID, MyStates.dialogue_with_client, OPERATOR_ID)
@@ -62,7 +63,7 @@ def send_request_to_operator(message, bot):
 
 
 def send_message_to_client(message, bot):
-    client_id = get_client_id()
+    client_id = get_first_client_from_queue()
     if message.document is not None:
         bot.send_document(client_id, document=message.document.file_id)
         return
@@ -83,7 +84,7 @@ def send_message_to_operator(message, bot):
 def callback_cancel_from_dialog(call, bot):
     bot.delete_message(call.message.chat.id, call.message.id)
     try:
-        client_id = get_next_client_from_queue()
+        client_id = get_first_client_and_delete_from_queue()
         logger.info(f'Выход из диалога клиента: {client_id}')
     except TypeError:
         bot.send_message(OPERATOR_ID, f'Актуальных диалогов нет')
@@ -104,7 +105,7 @@ def callback_cancel_from_dialog(call, bot):
         set_operator_state(b'free')
         logger.warning('Чат не существует')
     try:
-        next_client = get_client_id()
+        next_client = get_first_client_from_queue()
         if next_client is None:
             set_operator_state(b'free')
             logger.info('Оператор свободен')

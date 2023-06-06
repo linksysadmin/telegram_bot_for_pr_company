@@ -1,12 +1,12 @@
 import logging
 import time
 
-from config import OPERATOR_ID, DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_TECHNICAL_TASKS
+from config import OPERATOR_ID, DIR_FOR_TECHNICAL_TASKS
 from handlers.keyboards import keyboard_for_clients_in_brief
 from services.db_data import get_user_data_from_db, get_user_list_of_questions_informal_and_answers, \
-    delete_user_answers_in_section, update_info_about_user_docs_in_db, add_file_to_db
-from services.files import generate_technical_task_file, rename_file
-from services.redis_db import set_last_file_path, get_client_id
+    delete_user_answers_in_section, update_info_about_user_docs_in_db
+from services.files import generate_technical_task_file, extract_filename
+from services.redis_db import set_last_file_path, get_first_client_from_queue
 
 logger = logging.getLogger(__name__)
 
@@ -39,41 +39,49 @@ def callback_for_registration_technical_exercise(call, bot):
                                                  answers=answers)
     set_last_file_path(user_id, document_path)
     update_info_about_user_docs_in_db(user_id, documents=True)
-    time.sleep(3)
-    send_document_to_telegram(bot, user_data, document_path)
+    time.sleep(1)
+    send_document_to_client(bot, user_data, document_path)
 
 
 def callback_for_send_file(call, bot):
     bot.delete_message(call.message.chat.id, call.message.id)
     user_id = call.from_user.id
-    operator = False
     if user_id == OPERATOR_ID:
-        user_id = get_client_id()
-        operator = True
-    filename = rename_file(call.data, user_id)
-    path_to_file = f'{DIR_FOR_TECHNICAL_TASKS}/{filename}'
-
+        user_id = get_first_client_from_queue()
+        filename = extract_filename(call.data)
+        path_to_file = f'{DIR_FOR_TECHNICAL_TASKS}/{user_id}/{filename}'
+        user_data = get_user_data_from_db(user_id)
+        send_document_to_operator(bot, user_data, path_to_file)
+        return
+    filename = extract_filename(call.data)
+    path_to_file = f'{DIR_FOR_TECHNICAL_TASKS}/{user_id}/{filename}'
     user_data = get_user_data_from_db(user_id)
-    send_document_to_telegram(bot, user_data, path_to_file, operator=operator)
+    send_document_to_client(bot, user_data, path_to_file)
 
 
-def send_document_to_telegram(bot, user_data, document_path, operator: bool = None):
+def send_document_to_client(bot, user_data, document_path):
     try:
-        if operator:
-            with open(document_path, 'rb') as file:
-                bot.send_document(chat_id=OPERATOR_ID, document=file,
-                                  caption=f"Техническое задание от пользователя:\n{user_data['name']}\n"
-                                          f"Username: {user_data['tg_username']}\n"
-                                          f"Компания: {user_data['company']}\n"
-                                          f"Телефон: {user_data['phone']}\n"
-                                          f"Website: {user_data['website']}\n",
-                                  disable_content_type_detection=True,
-                                  visible_file_name=f'Тех.задание:{user_data["company"]}.docx')
-            return
         with open(document_path, 'rb') as file:
             bot.send_document(chat_id=user_data['id'], document=file,
                               caption=f"Ваше сформированное техническое задание",
                               disable_content_type_detection=True,
-                              visible_file_name=f'Тех.задание:{user_data["company"]}.docx')
+                              visible_file_name=f'Тех.задание компании {user_data["company"]}.docx')
     except FileNotFoundError:
         logger.error('Файл не найден')
+        bot.send_message(user_data['id'], 'К сожалению ваш файл не найден в нашей базе данных, свяжитесь с оператором')
+
+
+def send_document_to_operator(bot, user_data, document_path):
+    try:
+        with open(document_path, 'rb') as file:
+            bot.send_document(chat_id=OPERATOR_ID, document=file,
+                              caption=f"Техническое задание от пользователя:\n{user_data['name']}\n"
+                                      f"Username: {user_data['tg_username']}\n"
+                                      f"Компания: {user_data['company']}\n"
+                                      f"Телефон: {user_data['phone']}\n"
+                                      f"Website: {user_data['website']}\n",
+                              disable_content_type_detection=True,
+                              visible_file_name=f'Тех.задание компании {user_data["company"]}.docx')
+    except FileNotFoundError:
+        logger.error('Файл не найден')
+        bot.send_message(user_data['id'], 'К сожалению ваш файл не найден в нашей базе данных, свяжитесь с оператором')
