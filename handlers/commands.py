@@ -10,7 +10,8 @@ from services.states import MyStates
 logger = logging.getLogger(__name__)
 
 
-def start(message, bot):
+def start_for_clients(message, bot):
+    logger.info(f'Пользователь {message.from_user.id} начал общение с ботом')
     user_id = message.from_user.id
     user_data = get_user_data_from_db(user_id)
     has_documents = bool(user_data['documents'])
@@ -28,12 +29,12 @@ def start(message, bot):
     logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
 
-def start_unauthorized(message, bot):
-    logger.info(f'User {message.from_user.first_name} (id: {message.from_user.id}) start_unauthorized')
-    if bot.get_state(message.from_user.id, message.chat.id) is not None:
-        if bot.get_state(message.from_user.id, message.chat.id) in (
-                'MyStates:name', 'MyStates:phone_number', 'MyStates:company'):
-            if bot.get_state(message.from_user.id, message.chat.id) == 'MyStates:phone_number':
+def start_for_unauthorized_clients(message, bot):
+    logger.info(f'Новый пользователь {message.from_user.id} начал общение с ботом')
+    state = bot.get_state(message.from_user.id, message.chat.id)
+    if state is not None:
+        if state in ('MyStates:name', 'MyStates:phone_number', 'MyStates:company'):
+            if state == 'MyStates:phone_number':
                 remove_keyboard(message, bot, TEXT_MESSAGES['start_unauthorized'])
                 bot.set_state(message.from_user.id, MyStates.name)
                 return
@@ -68,8 +69,8 @@ def test_(message, bot):
 
     # bot.send_contact(message.chat.id, phone_number='+792343242332', first_name='Ваш оператор: Андрей')
     # bot.send_dice(message.from_user.id, emoji='🎰', timeout=4)
-    bot.send_message(message.from_user.id, "If you think so...")
-    bot.send_chat_action(message.from_user.id, 'typing')  # show the bot "typing" (max. 5 secs)
+    # bot.send_message(message.from_user.id, "If you think so...")
+    # bot.send_chat_action(message.from_user.id, 'typing')  # show the bot "typing" (max. 5 secs)
     help_text = "The following commands are available: \n"
     bot.send_message(message.from_user.id, help_text)  # send the generated help page    time.sleep(3)
 

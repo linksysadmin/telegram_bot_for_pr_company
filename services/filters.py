@@ -59,17 +59,34 @@ class CheckOperator(telebot.custom_filters.SimpleCustomFilter):
             return False
 
 
+class CheckTextOnlyInMessage(telebot.custom_filters.SimpleCustomFilter):
+    key = 'text_only'
+
+    def check(self, message):
+        if message.text is not None:
+            return True
+        else:
+            return False
 
 
-# class CheckUserAnswer(telebot.custom_filters.SimpleCustomFilter):
-#     key = 'check_user_answer'
-#
-#     def check(self, call):
-#         question_id = call.data.split('_')[1]
-#         if check_user_answer(call.from_user.id, question_id):
-#             return True
-#         else:
-#             return False
+class CheckDocumentInMessage(telebot.custom_filters.SimpleCustomFilter):
+    key = 'document'
+
+    def check(self, message):
+        if message.document is not None:
+            return True
+        else:
+            return False
+
+
+class CheckPhotoInMessage(telebot.custom_filters.SimpleCustomFilter):
+    key = 'photo'
+
+    def check(self, message):
+        if message.photo is not None:
+            return True
+        else:
+            return False
 
 
 class CheckPhoneNumber(telebot.custom_filters.SimpleCustomFilter):

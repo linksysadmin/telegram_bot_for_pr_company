@@ -1,7 +1,7 @@
 import logging
 
 from config import DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_REPORTS, DIR_FOR_OTHER_FILES, DIR_FOR_TECHNICAL_TASKS
-from handlers.commands import start
+from handlers.commands import start_for_clients
 from handlers.keyboards import remove_keyboard, \
     keyboard_send_phone, keyboard_for_answer, keyboard_enter_menu_for_clients, \
     keyboard_for_questions, keyboard_for_sex, keyboard_for_age, keyboard_for_other_answers
@@ -93,7 +93,7 @@ def next_question(message, bot):
         set_next_question_callback_in_redis(user=message.from_user.id, callback=next_callback)
     elif next_question_id > max_question_id:
         remove_keyboard(message, bot, 'Вопросов в этом направлении больше, нет(')
-        start(message, bot)
+        start_for_clients(message, bot)
         return
     question, answers = get_question_and_answers_from_db(next_question_id)
     user_answer = get_user_answer(message.from_user.id, next_question_id)

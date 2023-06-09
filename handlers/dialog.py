@@ -46,20 +46,22 @@ def callback_instant_messaging_service(call, bot):
 
 
 def callback_enter_into_a_dialog(call, bot):
-    try:
-        set_operator_state(b'busy')
-        client_id = get_first_client_from_queue()
-        logger.warning(client_id)
-        bot.set_state(client_id, MyStates.dialogue_with_operator, client_id)
-        bot.set_state(OPERATOR_ID, MyStates.dialogue_with_client, OPERATOR_ID)
-        bot.delete_message(call.message.chat.id, call.message.id)
-        bot.send_message(client_id, 'Вы вступили в диалог с оператором\n', reply_markup=keyboard_for_delete_dialogue())
-        bot.send_message(OPERATOR_ID, 'Вы вступили в диалог с клиентом\nНапишите ему:',
-                         reply_markup=keyboard_for_delete_dialogue())
-        logger.info(
-            f'Состояние клиента - {bot.get_state(client_id, client_id)}, оператора - {bot.get_state(OPERATOR_ID, OPERATOR_ID)}')
-    except Exception as e:
-        logger.error(f'{e}')
+    operator = call.from_user.id
+    client_id = get_first_client_from_queue()
+    if client_id is None:
+        logger.warning('Диалог в который пытается вступить оператор не актуален')
+        bot.send_message(operator, 'Диалог не актуален')
+        return
+    set_operator_state(b'busy')
+    logger.info(f'Оператор вступил в диалог с клиентом {client_id}')
+    bot.set_state(client_id, MyStates.dialogue_with_operator)
+    bot.set_state(operator, MyStates.dialogue_with_client)
+    bot.delete_message(call.message.chat.id, call.message.id)
+    bot.send_message(client_id, 'Вы вступили в диалог с оператором\n', reply_markup=keyboard_for_delete_dialogue())
+    bot.send_message(operator, 'Вы вступили в диалог с клиентом\nНапишите ему:',
+                     reply_markup=keyboard_for_delete_dialogue())
+    logger.info(
+        f'Состояние клиента - {bot.get_state(client_id)}, оператора - {bot.get_state(operator)}')
 
 
 def send_request_to_operator(message, bot):
@@ -68,31 +70,49 @@ def send_request_to_operator(message, bot):
 
 def send_message_to_client(message, bot):
     client_id = get_first_client_from_queue()
-    if message.document is not None:
-        bot.send_document(client_id, document=message.document.file_id)
-        return
     bot.send_message(client_id, f'💬Сообщение от оператора:\n\n{message.text}')
     log_dialogue_in_file.info(f'Сообщение от оператора: {message.text}')
 
 
+def send_document_to_client(message, bot):
+    client_id = get_first_client_from_queue()
+    bot.send_document(client_id, document=message.document.file_id)
+    log_dialogue_in_file.info('Оператор отправил файл')
+
+
+def send_photo_to_client(message, bot):
+    client_id = get_first_client_from_queue()
+    photo_id = message.photo[-1].file_id
+    bot.send_photo(client_id, photo=photo_id)
+    log_dialogue_in_file.info('Оператор отправил картинку')
+
+
 def send_message_to_operator(message, bot):
-    if message.document is not None:
-        bot.send_document(OPERATOR_ID, document=message.document.file_id)
-        return
     bot.send_message(OPERATOR_ID, f'💬Сообщение от клиента:\n{message.from_user.id}\n\n{message.text}',
                      reply_markup=keyboard_for_menu_in_dialogue())
     log_dialogue_in_file.info(f'Сообщение от клиента: {message.text}')
 
 
+def send_document_to_operator(message, bot):
+    bot.send_photo(OPERATOR_ID, document=message.document.file_id)
+    log_dialogue_in_file.info('Клиент отправил файл')
+
+
+def send_photo_to_operator(message, bot):
+    photo_id = message.photo[-1].file_id
+    bot.send_photo(OPERATOR_ID, photo=photo_id)
+    log_dialogue_in_file.info('Клиент отправил картинку')
+
+
 def callback_client_left_dialog(call, bot):
-    print(call.data)
     client_id = call.from_user.id
     remove_client_from_queue(client_id)
     bot.delete_message(call.message.chat.id, call.message.id)
     bot.delete_state(OPERATOR_ID, OPERATOR_ID)
     bot.delete_state(client_id, client_id)
     logger.info(f'Клиент {client_id} завершил диалог')
-    logger.info(f'Состояние клиента - {bot.get_state(client_id, client_id)}, оператора - {bot.get_state(OPERATOR_ID, OPERATOR_ID)}')
+    logger.info(
+        f'Состояние клиента - {bot.get_state(client_id, client_id)}, оператора - {bot.get_state(OPERATOR_ID, OPERATOR_ID)}')
     bot.send_message(call.from_user.id, f'Вы вышли из диалога\n\nНажмите /start - для входа в меню')
     bot.send_message(OPERATOR_ID, f'Клиент завершил диалог с вами')
     next_client = get_first_client_from_queue()
@@ -103,7 +123,7 @@ def callback_client_left_dialog(call, bot):
     set_operator_state(b'busy')
     logger.info(f'Запрос к оператору на диалог от клиента: {next_client}')
     bot.send_message(OPERATOR_ID, f'💬Запрос на диалог!🧨\n\nОт пользователя:\nID: {next_client}\n'
-                         , reply_markup=keyboard_for_enter_dialogue())
+                     , reply_markup=keyboard_for_enter_dialogue())
 
 
 def callback_operator_left_dialog(call, bot):
@@ -119,7 +139,7 @@ def callback_operator_left_dialog(call, bot):
         f'Состояние клиента - {bot.get_state(client_id, client_id)}, оператора - {bot.get_state(OPERATOR_ID, OPERATOR_ID)}')
     bot.send_message(OPERATOR_ID, f'Вы вышли из диалога!')
     bot.send_message(client_id, f'Оператор завершил диалог с вами',
-                         reply_markup=keyboard_enter_menu_for_clients())
+                     reply_markup=keyboard_enter_menu_for_clients())
     next_client = get_first_client_from_queue()
     if next_client is None:
         set_operator_state(b'free')

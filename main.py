@@ -9,7 +9,7 @@ from telebot.storage import StateRedisStorage
 
 from config import TELEGRAM_BOT_API_TOKEN
 
-from handlers.register_functions import register_functions_for_bot
+from handlers.register_functions import *
 
 formatter = colorlog.ColoredFormatter(
     '%(log_color)s%(name)s %(asctime)s - %(levelname)s - %(message)s',
@@ -26,11 +26,13 @@ console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
 logging.basicConfig(handlers=[console_handler], level=logging.INFO)
 
-
 bot = telebot.TeleBot(TELEGRAM_BOT_API_TOKEN, state_storage=StateRedisStorage(), parse_mode='HTML')
-
-
-register_functions_for_bot(bot=bot, custom_filters=custom_filters)
+registration_filters(bot, custom_filters)
+registration_commands(bot)
+registration_file_handling(bot)
+registration_states(bot)
+registration_games(bot)
+registration_menu_navigation(bot)
 
 bot.infinity_polling(skip_pending=True)
 # app = flask.Flask(__name__)

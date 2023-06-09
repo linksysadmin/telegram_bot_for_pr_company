@@ -26,63 +26,37 @@ def callback_technical_tasks_and_commercial_offer(call, bot):
                           reply_markup=keyboard_for_reference_and_commercial_offer())
 
 
-def callback_technical_tasks(call, bot):
+def send_files(call, bot, directory):
     user_id = call.from_user.id
-    list_of_files = find_documents(user_id, DIR_FOR_TECHNICAL_TASKS)
+    list_of_files = find_documents(user_id, directory)
     if list_of_files is None:
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text='К сожалению у вас нет оформленных файлов')
+        text = 'К сожалению у вас нет оформленных файлов'
     else:
-        set_directory_in_redis(user_id, DIR_FOR_TECHNICAL_TASKS)
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text='Выберите какой файл вы хотите получить:',
-                              reply_markup=keyboard_for_files(list_of_files))
+        set_directory_in_redis(user_id, directory)
+        text = 'Выберите какой файл вы хотите получить:'
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                          text=text, reply_markup=keyboard_for_files(list_of_files))
+
+
+def callback_technical_tasks(call, bot):
+    send_files(call, bot, DIR_FOR_TECHNICAL_TASKS)
 
 
 def callback_commercial_offer(call, bot):
-    user_id = call.from_user.id
-    list_of_files = find_documents(user_id, DIR_FOR_COMMERCIAL_OFFERS)
-    if list_of_files is None:
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text='К сожалению у вас нет оформленных файлов')
-    else:
-        set_directory_in_redis(user_id, DIR_FOR_COMMERCIAL_OFFERS)
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text='Выберите какой файл вы хотите получить:',
-                              reply_markup=keyboard_for_files(list_of_files))
+    send_files(call, bot, DIR_FOR_COMMERCIAL_OFFERS)
 
 
 def callback_reports(call, bot):
-    user_id = call.from_user.id
-    list_of_files = find_documents(user_id, DIR_FOR_REPORTS)
-    if list_of_files is None:
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text='К сожалению у вас нет оформленных файлов')
-    else:
-        set_directory_in_redis(user_id, DIR_FOR_COMMERCIAL_OFFERS)
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text='Выберите какой файл вы хотите получить:',
-                              reply_markup=keyboard_for_files(list_of_files))
+    send_files(call, bot, DIR_FOR_REPORTS)
 
 
 def callback_documents(call, bot):
-    user_id = call.from_user.id
-    list_of_files = find_documents(user_id, DIR_FOR_OTHER_FILES)
-    if list_of_files is None:
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text='К сожалению у вас нет оформленных файлов')
-    else:
-        set_directory_in_redis(user_id, DIR_FOR_COMMERCIAL_OFFERS)
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text='Выберите какой файл вы хотите получить:',
-                              reply_markup=keyboard_for_files(list_of_files))
+    send_files(call, bot, DIR_FOR_OTHER_FILES)
 
 
 def callback_chat_with_operator(call, bot):
     bot.send_contact(call.message.chat.id, phone_number='+74950188868', first_name='Оператор Mr.Эйч')
     bot.send_message(call.message.chat.id, TEXT_MESSAGES['chat_with_operator'])
-
-
 
 
 def callback_blog(call, bot):
@@ -130,8 +104,6 @@ def callback_section_from_subcategory(call, bot):
 
 def callback_cancel_from_inline_menu(call, bot):
     client_id = call.from_user.id
-    # if client_id == OPERATOR_ID:
-    #     client_id = get_client_id()
     user_data = get_user_data_from_db(client_id)
     reply_markup = keyboard_enter_menu_for_clients(doc=False)
     if user_data['documents']:
