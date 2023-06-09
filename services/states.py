@@ -15,3 +15,7 @@ class MyStates(StatesGroup):
     company = State()
     website = State()
     answer_to_question = State()
+    get_technical_task_file = State()
+    get_commercial_offer_file = State()
+    get_report_file = State()
+    get_other_file = State()

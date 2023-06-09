@@ -1,6 +1,6 @@
 import logging
 
-
+from config import DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_REPORTS, DIR_FOR_OTHER_FILES, DIR_FOR_TECHNICAL_TASKS
 from handlers.commands import start
 from handlers.keyboards import remove_keyboard, \
     keyboard_send_phone, keyboard_for_answer, keyboard_enter_menu_for_clients, \
@@ -8,10 +8,11 @@ from handlers.keyboards import remove_keyboard, \
 from handlers.text_messages import TEXT_MESSAGES
 from services.db_data import add_clients_data_to_db, get_question_and_answers_from_db, add_user_answers_to_db, \
     get_user_answer
+from services.files import save_file
 from services.redis_db import add_answers_to_list, get_user_answers, \
     get_question_id_from_redis, delete_user_answers_from_redis, get_keyboard_for_questions_from_redis, \
     get_next_question_callback_from_redis, set_question_id_in_redis, set_next_question_callback_in_redis, \
-    get_max_question_id_in_redis
+    get_max_question_id_in_redis, get_first_client_from_queue
 from services.states import MyStates
 
 logger = logging.getLogger(__name__)
@@ -74,7 +75,8 @@ def get_answer_from_user(message, bot):
             bot.send_message(message.chat.id, f'Выберите возраст', reply_markup=keyboard_for_age())
         case 'Доход' | 'Интересы':
             add_answers_to_list(client_id=message.from_user.id, answer=message.text)
-            bot.send_message(message.chat.id, f'Укажите {message.text.lower()}', reply_markup=keyboard_for_other_answers())
+            bot.send_message(message.chat.id, f'Укажите {message.text.lower()}',
+                             reply_markup=keyboard_for_other_answers())
         case _:
             add_answers_to_list(client_id=message.from_user.id, answer=message.text)
             bot.send_message(message.chat.id, f'Ответ принят, нажмите "✅ Отправить ответ" если больше нечего добавить')
@@ -116,6 +118,32 @@ def send_user_answers_to_db(message, bot):
     path = get_keyboard_for_questions_from_redis(message.from_user.id)
     bot.send_message(message.chat.id, 'Выберите вопрос:',
                      reply_markup=keyboard_for_questions(message.from_user.id, path=path))
+
+
+def save_file_and_set_state(message, bot, directory):
+    client_id = get_first_client_from_queue()
+    bot.send_document(client_id, document=message.document.file_id)
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    path = f'{directory}/{client_id}'
+    save_file(path=path, file=downloaded_file, filename=message.document.file_name)
+    bot.set_state(message.from_user.id, MyStates.dialogue_with_client)
+
+
+def get_technical_task_file(message, bot):
+    save_file_and_set_state(message, bot, DIR_FOR_TECHNICAL_TASKS)
+
+
+def get_commercial_offer_file(message, bot):
+    save_file_and_set_state(message, bot, DIR_FOR_COMMERCIAL_OFFERS)
+
+
+def get_report_file(message, bot):
+    save_file_and_set_state(message, bot, DIR_FOR_REPORTS)
+
+
+def get_other_file(message, bot):
+    save_file_and_set_state(message, bot, DIR_FOR_OTHER_FILES)
 
 
 def phone_incorrect(message, bot):

@@ -1,15 +1,15 @@
-from config import OPERATOR_ID
+from config import OPERATOR_ID, DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_TECHNICAL_TASKS, DIR_FOR_OTHER_FILES, DIR_FOR_REPORTS
 from handlers.keyboards import keyboard_for_briefings, \
     keyboard_for_questions, keyboard_for_direction, keyboard_for_sub_direction, keyboard_enter_menu_for_clients, \
     keyboard_for_answer, keyboard_for_change_answer, keyboard_for_reference_and_commercial_offer, \
-    keyboard_for_files, keyboard_for_enter_dialogue, keyboard_for_games
-from handlers.send_document_to_user import send_document_to_operator
+    keyboard_for_files, keyboard_for_enter_dialogue
+from handlers.send_documents import send_document_to_operator
 from services.db_data import get_data_questions, get_question_and_answers_from_db, \
     get_user_answer, get_user_data_from_db, get_directories
-from services.files import find_technical_tasks, find_commercial_offers
+from services.files import find_documents
 from services.redis_db import set_question_id_in_redis, get_question_id_from_redis, \
     set_next_question_callback_in_redis, get_max_question_id_in_redis, get_keyboard_for_questions_from_redis, \
-    get_last_file_path, add_client_to_queue
+    get_last_file_path, add_client_to_queue, set_directory_in_redis
 from services.states import MyStates
 from handlers.text_messages import TEXT_MESSAGES
 
@@ -22,26 +22,57 @@ def callback_scenario(call, bot):
 def callback_technical_tasks_and_commercial_offer(call, bot):
     bot.edit_message_text(chat_id=call.message.chat.id,
                           message_id=call.message.message_id,
-                          text='Выберите какой файл вы хотите получить:',
+                          text='Выберите тип файла',
                           reply_markup=keyboard_for_reference_and_commercial_offer())
 
 
 def callback_technical_tasks(call, bot):
-    callback_files(call, bot, find_technical_tasks)
+    user_id = call.from_user.id
+    list_of_files = find_documents(user_id, DIR_FOR_TECHNICAL_TASKS)
+    if list_of_files is None:
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text='К сожалению у вас нет оформленных файлов')
+    else:
+        set_directory_in_redis(user_id, DIR_FOR_TECHNICAL_TASKS)
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text='Выберите какой файл вы хотите получить:',
+                              reply_markup=keyboard_for_files(list_of_files))
 
 
 def callback_commercial_offer(call, bot):
-    callback_files(call, bot, find_commercial_offers)
-
-
-def callback_files(call, bot, find_files_func):
     user_id = call.from_user.id
-    list_of_files = find_files_func(user_id)
-    if bool(list_of_files) is False:
+    list_of_files = find_documents(user_id, DIR_FOR_COMMERCIAL_OFFERS)
+    if list_of_files is None:
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              text='К сожалению у вас нет оформленных файлов',
-                              reply_markup=keyboard_for_files(list_of_files))
+                              text='К сожалению у вас нет оформленных файлов')
     else:
+        set_directory_in_redis(user_id, DIR_FOR_COMMERCIAL_OFFERS)
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text='Выберите какой файл вы хотите получить:',
+                              reply_markup=keyboard_for_files(list_of_files))
+
+
+def callback_reports(call, bot):
+    user_id = call.from_user.id
+    list_of_files = find_documents(user_id, DIR_FOR_REPORTS)
+    if list_of_files is None:
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text='К сожалению у вас нет оформленных файлов')
+    else:
+        set_directory_in_redis(user_id, DIR_FOR_COMMERCIAL_OFFERS)
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text='Выберите какой файл вы хотите получить:',
+                              reply_markup=keyboard_for_files(list_of_files))
+
+
+def callback_documents(call, bot):
+    user_id = call.from_user.id
+    list_of_files = find_documents(user_id, DIR_FOR_OTHER_FILES)
+    if list_of_files is None:
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text='К сожалению у вас нет оформленных файлов')
+    else:
+        set_directory_in_redis(user_id, DIR_FOR_COMMERCIAL_OFFERS)
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text='Выберите какой файл вы хотите получить:',
                               reply_markup=keyboard_for_files(list_of_files))
@@ -52,8 +83,6 @@ def callback_chat_with_operator(call, bot):
     bot.send_message(call.message.chat.id, TEXT_MESSAGES['chat_with_operator'])
 
 
-def callback_upload_report(call, bot):
-    pass
 
 
 def callback_blog(call, bot):

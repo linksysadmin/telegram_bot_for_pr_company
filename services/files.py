@@ -1,34 +1,39 @@
 import os
 import logging
 
-from config import BASE_DIR, DIR_FOR_TECHNICAL_TASKS, DIR_FOR_COMMERCIAL_OFFERS
+from config import BASE_DIR, DIR_FOR_TECHNICAL_TASKS, DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_OTHER_FILES, DIR_FOR_REPORTS
 from docxtpl import DocxTemplate
 from datetime import datetime
+
+from services.redis_db import get_directory_from_redis
 
 logger = logging.getLogger(__name__)
 
 
-def find_files(user_id: int, directory: str):
+def find_files(user_id: int, directory_path: str):
     try:
         user_folder = str(user_id)
-        directory = os.path.join(directory, user_folder)
-        files = os.listdir(directory)
+        user_directory = os.path.join(directory_path, user_folder)
+        files = os.listdir(user_directory)
         matching_files = [file for file in files]
         return matching_files
     except FileNotFoundError:
-        logger.warning(f"Файл не найден")
+        logger.warning(f"Файлы не найдены")
         return None
 
 
-def find_technical_tasks(user_id: int):
-    return find_files(user_id, DIR_FOR_TECHNICAL_TASKS)
+def find_documents(user_id: int, directory_path: str):
+    return find_files(user_id, directory_path)
 
 
-def find_commercial_offers(user_id: int):
-    return find_files(user_id, DIR_FOR_COMMERCIAL_OFFERS)
+def get_path_to_file(callback_data, client_id, call_id):
+    filename = extract_filename_from_string(callback_data)
+    directory = get_directory_from_redis(call_id)
+    path_to_file = f'{directory}/{client_id}/{filename}'
+    return path_to_file
 
 
-def extract_filename(callback: str) -> str:
+def extract_filename_from_string(callback: str) -> str:
     """
     Функция выделяет имя файла из callback, удаляя из него 'send_file_'
     :param callback: str - строка вызова callback
@@ -65,10 +70,11 @@ def generate_technical_task_file(user_id: int, section: str, client_name: str, c
         return False
 
 
-if __name__ == '__main__':
-    # generate_technical_task_file(5432693304, 'Стратегия', 'Григорий', 'OOO"ОГО"', '+73242342', 'www.woohoo.com',
-    #                                ['Сегодня прекрасный день?', 'Что ?', 'Что потом ?'],
-    #                                ['Да', 'Гулять', 'Потом не знаю что', 'Ответ4'])
-    #
-    # print(find_technical_tasks(user_id=5432693304))
-    print(extract_filename('send_file_Стратегия.docx'))
+def save_file(path, file, filename):
+    try:
+        if not os.path.exists(path):
+            os.makedirs(path)
+        with open(f'{path}/{filename}', 'wb') as new_file:
+            new_file.write(file)
+    except FileNotFoundError:
+        logger.warning(f"У клиента еще нет папки с файлами")

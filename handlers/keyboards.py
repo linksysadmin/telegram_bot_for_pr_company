@@ -2,9 +2,9 @@ import logging
 
 from telebot import types
 
-from config import OPERATOR_ID
 from services.db_data import get_directories, \
-    get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers, get_sub_directions
+    get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers, get_sub_directions, \
+    get_users_data_from_db
 from services.redis_db import add_keyboard_for_questions_in_redis, set_max_question_id_in_redis
 
 logger = logging.getLogger(__name__)
@@ -13,18 +13,18 @@ logger = logging.getLogger(__name__)
 def keyboard_enter_menu_for_clients(doc=False):
     """Keyboard for main menu"""
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-    key1 = types.InlineKeyboardButton(text='📋 Составить ТЗ', callback_data='scenario')
-    key2 = types.InlineKeyboardButton(text='📝 Мои тех.задания и КП',
+    key1 = types.InlineKeyboardButton(text='📋 Сформировать Тех. Задание', callback_data='scenario')
+    key2 = types.InlineKeyboardButton(text='💬 Поставить задачу', callback_data='instant_messaging_service')
+    key3 = types.InlineKeyboardButton(text='📝 Файлы',
                                       callback_data='technical_tasks_and_commercial_offer')
-    key3 = types.InlineKeyboardButton(text='👨‍💻 Чат с оператором', callback_data='chat_with_operator')
-    key4 = types.InlineKeyboardButton(text='💬 Поставить задачу', callback_data='instant_messaging_service')
-    key5 = types.InlineKeyboardButton(text='🎲 Игры',
-                                      url='https://tbot.xyz/lumber/#eyJ1Ijo1NDMyNjkzMzA0LCJuIjoiRiAiLCJnIjoiTHVtYmVySmFjayIsImNpIjoiLTI1MzQ1MDY5NjM0MDQyMTgzMzMiLCJpIjoiQWdBQUFEaFMwRU1CQUFBQXN0OEFBSHNUMVVoUHl4MkEifThmZDc1ZTJlNWU3MmFlNzAzZmZjYzliYTY2YzlkYTg0?tgShareScoreUrl=tg%3A%2F%2Fshare_game_score%3Fhash%3Dil17jmeMEYiZQZEdAX4k7unePl1hq7AhrJcYdDgjqLsGOW0V3m7spgB3U0VGgH8-')
-    key5 = types.InlineKeyboardButton(text='🎲 Игры', callback_data='games')
-    # key5 = types.InlineKeyboardButton(text='🤳 Блог', callback_data='blog')
+    key4 = types.InlineKeyboardButton(text='🎲 Игры', callback_data='games')
+    key5 = types.InlineKeyboardButton(text='👨‍💻 Написать оператору', callback_data='chat_with_operator')
+    # key = types.InlineKeyboardButton(text='🤳 Блог', callback_data='blog')
+    keyboard.add(key1)
     if doc is True:
         keyboard.add(key2)
-    keyboard.add(key1, key3, key4, key5)
+    keyboard.row(key3, key4)
+    keyboard.add(key5)
     return keyboard
 
 
@@ -32,16 +32,10 @@ def keyboard_for_reference_and_commercial_offer():
     keyboard = types.InlineKeyboardMarkup(row_width=True)
     key1 = types.InlineKeyboardButton(text='📃 Тех.задания', callback_data='technical_tasks')
     key2 = types.InlineKeyboardButton(text='📑 Коммерческие предложения', callback_data='commercial_offers')
-    key3 = types.InlineKeyboardButton(text='📈 Отчеты', callback_data='upload_report')
-    key4 = types.InlineKeyboardButton(text='Назад', callback_data='cancel_from_inline_menu')
-    keyboard.add(key1, key2, key3, key4)
-    return keyboard
-
-
-def keyboard_with_client_files(list_of_files: list = None):
-    keyboard = types.InlineKeyboardMarkup(row_width=True)
-    for file in list_of_files:
-        keyboard.add(types.InlineKeyboardButton(text=f'{file}', callback_data=f'send_file_{file}'))
+    key3 = types.InlineKeyboardButton(text='📈 Отчеты', callback_data='reports')
+    key4 = types.InlineKeyboardButton(text='📇 Документы', callback_data='documents')
+    key5 = types.InlineKeyboardButton(text='Назад', callback_data='cancel_from_inline_menu')
+    keyboard.add(key1, key2, key3, key4, key5)
     return keyboard
 
 
@@ -209,40 +203,6 @@ def keyboard_for_clients_in_brief():
     return keyboard
 
 
-# Keyboards for operator
-
-def keyboard_enter_menu_for_operator():
-    keyboard = types.InlineKeyboardMarkup(row_width=True)
-    key1 = types.InlineKeyboardButton(text='Запросы', callback_data='requests')
-    key2 = types.InlineKeyboardButton(text='Клиенты', callback_data='clients')
-    key3 = types.InlineKeyboardButton(text='Задачи', callback_data='tasks')
-    key4 = types.InlineKeyboardButton(text='Настройки', callback_data='settings')
-    keyboard.add(key1, key2, key3, key4)
-    return keyboard
-
-
-def keyboard_for_menu_in_dialogue():
-    keyboard = types.InlineKeyboardMarkup(row_width=True)
-    tech_tasks = types.InlineKeyboardButton(text='Технические задания и брифы',
-                                            callback_data='technical_tasks_for_operator')
-    commercial_offers = types.InlineKeyboardButton(text='Коммерческие предложения',
-                                                   callback_data='commercial_offers_for_operator')
-    reports = types.InlineKeyboardButton(text='Отчеты', callback_data='reports')
-    documents = types.InlineKeyboardButton(text='Документы', callback_data='documents')
-    cancel = types.InlineKeyboardButton(text='❌Выйти из диалога', callback_data='cancel_from_dialog')
-    keyboard.add(tech_tasks, commercial_offers, reports, documents, cancel)
-    return keyboard
-
-
-def keyboard_queue_of_clients(queue_of_clients):
-    keyboard = types.InlineKeyboardMarkup(row_width=True)
-    for client in queue_of_clients:
-        keyboard.add(types.InlineKeyboardButton(text=f'{client}', callback_data=f'queue_{client}'))
-    main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_to_enter_menu_for_operator')
-    keyboard.row(main_menu)
-    return keyboard
-
-
 def keyboard_for_games():
     keyboard = types.InlineKeyboardMarkup(row_width=True)
     game1 = types.InlineKeyboardButton(text='Karate Kido 2', callback_data='karatekido2')
@@ -259,7 +219,56 @@ def keyboard_for_games():
     return keyboard
 
 
-# REMOVE KEYBOARD
+# Keyboards for operator
+
+def keyboard_enter_menu_for_operator():
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    key1 = types.InlineKeyboardButton(text='Запросы', callback_data='requests')
+    key2 = types.InlineKeyboardButton(text='Клиенты', callback_data='clients')
+    key3 = types.InlineKeyboardButton(text='Задачи', callback_data='tasks')
+    key4 = types.InlineKeyboardButton(text='Настройки', callback_data='settings')
+    keyboard.add(key1, key2, key3, key4)
+    return keyboard
+
+
+def keyboard_queue_of_clients(queue_of_clients):
+    users_data = get_users_data_from_db(queue_of_clients)
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    for client in users_data:
+        keyboard.add(types.InlineKeyboardButton(text=f'❗️{client["name"]}|{client["company"]}',
+                                                callback_data=f'queue_{client["id"]}'))
+    main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_to_enter_menu_for_operator')
+    keyboard.row(main_menu)
+    return keyboard
+
+
+def keyboard_for_menu_in_dialogue():
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    tech_tasks = types.InlineKeyboardButton(text='Технические задания и брифы',
+                                            callback_data='technical_tasks_for_operator')
+    commercial_offers = types.InlineKeyboardButton(text='Коммерческие предложения',
+                                                   callback_data='commercial_offers_for_operator')
+    reports = types.InlineKeyboardButton(text='Отчеты', callback_data='reports_for_operator')
+    documents = types.InlineKeyboardButton(text='Документы', callback_data='other_documents_for_operator')
+    cancel = types.InlineKeyboardButton(text='❌Выйти из диалога', callback_data='cancel_from_dialog')
+    keyboard.add(tech_tasks, commercial_offers, reports, documents, cancel)
+    return keyboard
+
+
+def keyboard_with_client_files(list_of_files):
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    upload_file = types.InlineKeyboardButton(text='Загрузить файл', callback_data='upload_file')
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_enter_menu_in_dialogue')
+    if list_of_files is None:
+        keyboard.row(cancel, upload_file)
+        return keyboard
+    else:
+        for file in list_of_files:
+            keyboard.add(types.InlineKeyboardButton(text=f'{file}', callback_data=f'send_file_{file}'))
+        keyboard.row(cancel, upload_file)
+        return keyboard
+
+
 def remove_keyboard(message, bot, text: str) -> None:
     bot.send_message(message.chat.id, f'{text}',
                      reply_markup=types.ReplyKeyboardRemove())

@@ -15,17 +15,38 @@ def get_first_client_from_queue():
     try:
         return int(REDIS.lindex('queue', 0))  # вернуть первый элемент списка
     except Exception:
-        logger.warning(f'В очереди больше нет никого')
+        logger.warning(f'В очереди никого нет')
+        return None
+
+
+def set_directory_in_redis(user_id, path: str):
+    REDIS.set(f'path_to_directory|{user_id}', json.dumps(path))
+
+
+def get_directory_from_redis(user_id):
+    return json.loads(REDIS.get(f'path_to_directory|{user_id}'))
 
 
 # Получаем следующего клиента из списка ожидающих
 def get_first_client_and_delete_from_queue():
-    return int(REDIS.lpop('queue'))  # Удаляет и возвращает первый элемент списка, сохраненного в key.
+    try:
+        return int(REDIS.lpop('queue'))  # Удаляет и возвращает первый элемент списка, сохраненного в key.
+    except TypeError:
+        return None
 
 
 def add_client_to_queue(client_id):
-    if REDIS.lpos('queue', client_id) is None:  # Check if the client_id already exists in the queue
-        REDIS.rpush('queue', client_id)  # If the client_id does not exist in the queue, add it to the end of the list
+    if REDIS.lpos('queue', client_id) is None:
+        REDIS.rpush('queue', client_id)
+        return True
+    else:
+        return False
+
+
+def remove_client_from_queue(client_id):
+    index = REDIS.lpos('queue', client_id)
+    if index is not None:
+        REDIS.lrem('queue', index, client_id)
         return True
     else:
         return False
@@ -34,7 +55,6 @@ def add_client_to_queue(client_id):
 def move_client_to_first_place_in_queue(client_id):
     REDIS.lrem('queue', 0, client_id)
     REDIS.lpush('queue', client_id)
-    print(REDIS.lrange('queue', 0, -1))
 
 
 def add_keyboard_for_questions_in_redis(user_id: int, path):
@@ -103,6 +123,3 @@ def get_last_file_path(user_id):
         return False
 
 
-if __name__ == '__main__':
-    print(get_queue_of_clients())
-    move_client_to_first_place_in_queue(6003832270)

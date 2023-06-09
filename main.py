@@ -9,18 +9,7 @@ from telebot.storage import StateRedisStorage
 
 from config import TELEGRAM_BOT_API_TOKEN
 
-from handlers.register_bot_functions import register_functions_for_bot
-
-from services.filters import CheckPhoneNumber, CheckConsent, \
-    ContactForm, CheckFile, CheckUserRegistration, CheckPathToSection, CheckPathToSectionWithoutSubDirectory, \
-    CheckPathToSectionWithSubDirectory, FinishPoll, NextQuestion, CheckOperator
-
-# logging.basicConfig(handlers=(logging.StreamHandler(),),
-#                     format="%(name)s %(asctime)s - %(levelname)s - %(message)s",
-#                     datefmt='%m.%d.%Y %H:%M:%S',
-#                     level=logging.INFO)
-#
-# logger = logging.getLogger(__name__)
+from handlers.register_functions import register_functions_for_bot
 
 formatter = colorlog.ColoredFormatter(
     '%(log_color)s%(name)s %(asctime)s - %(levelname)s - %(message)s',
@@ -33,14 +22,9 @@ formatter = colorlog.ColoredFormatter(
         'CRITICAL': 'red,bg_white',
     })
 
-# Создаем обработчик для вывода логов в консоль
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
-
 logging.basicConfig(handlers=[console_handler], level=logging.INFO)
-
-# logger = colorlog.getLogger(__name__)
-# logger.setLevel(logging.INFO)
 
 
 bot = telebot.TeleBot(TELEGRAM_BOT_API_TOKEN, state_storage=StateRedisStorage(), parse_mode='HTML')

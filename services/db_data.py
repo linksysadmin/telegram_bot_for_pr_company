@@ -1,6 +1,8 @@
 import json
 import logging
 
+from mysql import connector
+
 from config import REDIS
 from db import fetch_all, execute
 
@@ -13,6 +15,24 @@ def get_user_data_from_db(user_id: int):
     return {'date_of_registration': data[0][0].strftime('%d-%m-%Y'), 'id': data[0][1], 'name': data[0][2],
             'tg_username': data[0][3], 'phone': data[0][4], 'company': data[0][5], 'website': data[0][6],
             'documents': data[0][7]}
+
+
+def get_users_data_from_db(user_ids: list):
+    try:
+        if len(user_ids) == 1:
+            user_ids_query = f"('{user_ids[0]}')"
+        else:
+            user_ids_query = tuple(user_ids)
+        data = fetch_all(sql=f"SELECT * FROM clients WHERE id IN {user_ids_query}")
+        users_data = []
+        for row in data:
+            user_data = {'date_of_registration': row[0].strftime('%d-%m-%Y'), 'id': row[1], 'name': row[2],
+                         'tg_username': row[3], 'phone': row[4], 'company': row[5], 'website': row[6],
+                         'documents': row[7]}
+            users_data.append(user_data)
+        return users_data
+    except connector.errors.ProgrammingError:
+        return None
 
 
 def get_data_questions() -> list[tuple]:
@@ -107,27 +127,36 @@ def get_questions_id_from_user_answers(user_id: int):
 
 def get_sections_from_db(direction, sub_direction=None):
     if sub_direction is None:
-        sections = REDIS.get(f'sections_of_{direction}')
-        if sections is not None:
-            return json.loads(sections)
-        sections = fetch_all(
-            sql='SELECT DISTINCT section_name FROM questions WHERE direction = %s AND sub_direction IS NULL',
-            params=(direction,))
-        list_of_sections = [i[0] for i in sections]
-        REDIS.set(f'sections_of_{direction}', json.dumps(list_of_sections))
-        REDIS.close()
-        return list_of_sections
+        sections = get_sections_by_direction(direction)
     else:
-        sections = REDIS.get(f'sections_of_{direction}_{sub_direction}')
-        if sections is not None:
-            return json.loads(sections)
-        sections = fetch_all(
-            sql='SELECT DISTINCT section_name FROM questions WHERE direction = %s AND sub_direction = %s',
-            params=(direction, sub_direction))
-        list_of_sections = [i[0] for i in sections]
-        REDIS.set(f'sections_of_{direction}_{sub_direction}', json.dumps(list_of_sections))
-        REDIS.close()
-        return list_of_sections
+        sections = get_sections_by_direction_and_sub_direction(direction, sub_direction)
+    return sections
+
+
+def get_sections_by_direction(direction):
+    sections = REDIS.get(f'sections_of_{direction}')
+    if sections is not None:
+        return json.loads(sections)
+    sections = fetch_all(
+        sql='SELECT DISTINCT section_name FROM questions WHERE direction = %s AND sub_direction IS NULL',
+        params=(direction,))
+    list_of_sections = [i[0] for i in sections]
+    REDIS.set(f'sections_of_{direction}', json.dumps(list_of_sections))
+    REDIS.close()
+    return list_of_sections
+
+
+def get_sections_by_direction_and_sub_direction(direction, sub_direction):
+    sections = REDIS.get(f'sections_of_{direction}_{sub_direction}')
+    if sections is not None:
+        return json.loads(sections)
+    sections = fetch_all(
+        sql='SELECT DISTINCT section_name FROM questions WHERE direction = %s AND sub_direction = %s',
+        params=(direction, sub_direction))
+    list_of_sections = [i[0] for i in sections]
+    REDIS.set(f'sections_of_{direction}_{sub_direction}', json.dumps(list_of_sections))
+    REDIS.close()
+    return list_of_sections
 
 
 def get_questions_from_db(direction, section, sub_direction=None):
@@ -169,26 +198,3 @@ def add_user_answers_to_db(user_id: int, question_id: int, user_response: str):
         sql='''INSERT INTO clients_briefings (client_id, question_id, user_response)
              VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE user_response = VALUES (user_response)''',
         params=[(user_id, question_id, user_response)])
-
-
-def get_info_about_user_files_from_db(user_id, type_document: str):
-    match type_document:
-        case 'technical_tasks' | 'commercial_offers':
-            doc_info = fetch_all(
-                sql='''SELECT * FROM {} WHERE client_id = %s'''.format(type_document),
-                params=(user_id,))
-            return [{'create': item[1], 'user_id': item[2], 'filename': item[3]} for item in doc_info]
-        case _:
-            raise ValueError("Неверное значение type_document. Должно быть 'commercial_offers' или 'technical_tasks' ")
-
-
-def get_list_of_files_from_db(user_id, type_document: str):
-    match type_document:
-        case 'technical_tasks' | 'commercial_offers':
-            path_list = fetch_all(
-                sql='''SELECT filename FROM {} WHERE client_id = %s'''.format(type_document),
-                params=(user_id,))
-            path_list = [path[0] for path in path_list]
-            return path_list
-        case _:
-            raise ValueError("Неверное значение type_document. Должно быть 'commercial_offers' или 'technical_tasks' ")

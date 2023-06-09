@@ -1,9 +1,5 @@
 import logging
-import time
 
-from telebot import types
-
-from config import COMMANDS_FOR_BOT, OPERATOR_ID
 from handlers.text_messages import TEXT_MESSAGES
 from handlers.keyboards import remove_keyboard, keyboard_enter_menu_for_clients, \
     keyboard_for_questions, keyboard_enter_menu_for_operator
@@ -75,9 +71,6 @@ def test_(message, bot):
     bot.send_message(message.from_user.id, "If you think so...")
     bot.send_chat_action(message.from_user.id, 'typing')  # show the bot "typing" (max. 5 secs)
     help_text = "The following commands are available: \n"
-    for key in COMMANDS_FOR_BOT:  # generate help text out of the commands dictionary defined at the top
-        help_text += "/" + key + ": "
-        help_text += COMMANDS_FOR_BOT[key] + "\n"
     bot.send_message(message.from_user.id, help_text)  # send the generated help page    time.sleep(3)
 
 
