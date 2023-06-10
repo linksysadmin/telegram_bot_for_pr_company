@@ -5,15 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="408f61a6-9975-4ccc-b2f3-90f02b4ce47f" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/kwork_telegram_bot_for_KP.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kwork_telegram_bot_for_KP.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/clients.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/clients.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/commands.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/dialog.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/get_info.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/get_info.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/register_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/register_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/keyboards.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/filters.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,11 +71,11 @@
       <recent name="$PROJECT_DIR$/document_templates" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/static/documents" />
       <recent name="$PROJECT_DIR$/static/documents/commercial_offers" />
       <recent name="$PROJECT_DIR$/static/documents/img" />
       <recent name="$PROJECT_DIR$/static" />
       <recent name="$PROJECT_DIR$/documents/templates" />
-      <recent name="$PROJECT_DIR$" />
     </key>
   </component>
   <component name="RunManager" selected="Python.main">

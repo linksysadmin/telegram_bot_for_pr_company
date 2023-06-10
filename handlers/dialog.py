@@ -1,8 +1,7 @@
 import logging
+import os
 
-from telebot import apihelper
-
-from config import OPERATOR_ID
+from config import OPERATOR_ID, DIR_FOR_SAVE_DIALOGS
 from handlers.keyboards import keyboard_for_delete_dialogue, keyboard_for_enter_dialogue, \
     keyboard_enter_menu_for_clients, keyboard_for_menu_in_dialogue
 from services.redis_db import get_operator_state, set_operator_state, add_client_to_queue, \
@@ -11,13 +10,21 @@ from services.redis_db import get_operator_state, set_operator_state, add_client
 from services.states import MyStates
 
 logger = logging.getLogger(__name__)
-log_dialogue_in_file = logging.getLogger('logger_for_dialogue')
-file_handler = logging.FileHandler('logs/dialogue.log')
-formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-file_handler.setFormatter(formatter)
-log_dialogue_in_file.addHandler(file_handler)
-log_dialogue_in_file.setLevel(logging.INFO)
-log_dialogue_in_file.propagate = False
+
+
+def dialogue_logging(client_id):
+    log_dialogue_in_file = logging.getLogger(f'logger_for_dialogue_{client_id}')
+    if not log_dialogue_in_file.handlers:
+        log_dir = f'{DIR_FOR_SAVE_DIALOGS}/{client_id}'
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        file_handler = logging.FileHandler(f'{DIR_FOR_SAVE_DIALOGS}/{client_id}/dialogue.log')
+        formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+        file_handler.setFormatter(formatter)
+        log_dialogue_in_file.addHandler(file_handler)
+        log_dialogue_in_file.setLevel(logging.INFO)
+        log_dialogue_in_file.propagate = False
+    return log_dialogue_in_file
 
 
 def callback_instant_messaging_service(call, bot):
@@ -70,38 +77,47 @@ def send_request_to_operator(message, bot):
 
 def send_message_to_client(message, bot):
     client_id = get_first_client_from_queue()
+    log_dialogue = dialogue_logging(client_id)
     bot.send_message(client_id, f'💬Сообщение от оператора:\n\n{message.text}')
-    log_dialogue_in_file.info(f'Сообщение от оператора: {message.text}')
+    log_dialogue.info(f'Сообщение от оператора: {message.text}')
 
 
 def send_document_to_client(message, bot):
     client_id = get_first_client_from_queue()
+    log_dialogue = dialogue_logging(client_id)
     bot.send_document(client_id, document=message.document.file_id)
-    log_dialogue_in_file.info('Оператор отправил файл')
+    log_dialogue.info('Оператор отправил файл')
 
 
 def send_photo_to_client(message, bot):
     client_id = get_first_client_from_queue()
+    log_dialogue = dialogue_logging(client_id)
     photo_id = message.photo[-1].file_id
     bot.send_photo(client_id, photo=photo_id)
-    log_dialogue_in_file.info('Оператор отправил картинку')
+    log_dialogue.info('Оператор отправил картинку')
 
 
 def send_message_to_operator(message, bot):
-    bot.send_message(OPERATOR_ID, f'💬Сообщение от клиента:\n{message.from_user.id}\n\n{message.text}',
+    client_id = message.from_user.id
+    log_dialogue = dialogue_logging(client_id)
+    log_dialogue.info(f'Сообщение от клиента: {message.text}')
+    bot.send_message(OPERATOR_ID, f'💬Сообщение от клиента {client_id}: {message.text}',
                      reply_markup=keyboard_for_menu_in_dialogue())
-    log_dialogue_in_file.info(f'Сообщение от клиента: {message.text}')
 
 
 def send_document_to_operator(message, bot):
+    client_id = message.from_user.id
+    log_dialogue = dialogue_logging(client_id)
     bot.send_photo(OPERATOR_ID, document=message.document.file_id)
-    log_dialogue_in_file.info('Клиент отправил файл')
+    log_dialogue.info('Клиент отправил файл')
 
 
 def send_photo_to_operator(message, bot):
+    client_id = message.from_user.id
+    log_dialogue = dialogue_logging(client_id)
     photo_id = message.photo[-1].file_id
     bot.send_photo(OPERATOR_ID, photo=photo_id)
-    log_dialogue_in_file.info('Клиент отправил картинку')
+    log_dialogue.info('Клиент отправил картинку')
 
 
 def callback_client_left_dialog(call, bot):

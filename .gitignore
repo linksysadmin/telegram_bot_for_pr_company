@@ -2,11 +2,12 @@
 .env
 /excel_files/пользователи.xlsx
 database.db
-logs/kwork_project_telegram_bot_for_university.log
-logs/dialogue.log
+static/documents/dialogs/kwork_project_telegram_bot_for_university.log
+static/documents/dialogs/dialogue.log
 __pycache__
 .idea
 static/documents/technical_tasks
 static/documents/commercial_offers
 
 static/conf.info
+static/documents

@@ -22,8 +22,8 @@ def keyboard_enter_menu_for_clients(doc=False):
     # key = types.InlineKeyboardButton(text='🤳 Блог', callback_data='blog')
     keyboard.add(key1)
     if doc is True:
-        keyboard.add(key2)
-    keyboard.row(key3, key4)
+        keyboard.add(key3)
+    keyboard.row(key2, key4)
     keyboard.add(key5)
     return keyboard
 

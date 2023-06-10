@@ -21,10 +21,10 @@ formatter = colorlog.ColoredFormatter(
         'ERROR': 'red',
         'CRITICAL': 'red,bg_white',
     })
-
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
-logging.basicConfig(handlers=[console_handler], level=logging.INFO)
+logging.basicConfig(handlers=[console_handler], level=logging.INFO, encoding='utf-8')
+
 
 bot = telebot.TeleBot(TELEGRAM_BOT_API_TOKEN, state_storage=StateRedisStorage(), parse_mode='HTML')
 registration_filters(bot, custom_filters)
