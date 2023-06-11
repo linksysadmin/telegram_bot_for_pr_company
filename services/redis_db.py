@@ -8,6 +8,8 @@ logger = logging.getLogger(__name__)
 
 def get_queue_of_clients():
     list_of_binary = REDIS.lrange('queue', 0, -1)
+    if not list_of_binary:
+        return None
     return [int(num) for num in list_of_binary]
 
 
@@ -52,7 +54,7 @@ def remove_client_from_queue(client_id):
         return False
 
 
-def move_client_to_first_place_in_queue(client_id):
+def move_client_to_first_place_in_queue(client_id) -> None:
     REDIS.lrem('queue', 0, client_id)
     REDIS.lpush('queue', client_id)
 
@@ -102,14 +104,14 @@ def get_next_question_callback_from_redis(user: int):
     return json.loads(REDIS.get(f'next_question_callback_in_redis:{user}'))
 
 
-# Получаем состояние оператора
-def get_operator_state():
-    return REDIS.get('operator_state')
-
-
 # Устанавливаем состояние оператора
 def set_operator_state(state):
     REDIS.set('operator_state', state)
+
+
+# Получаем состояние оператора
+def get_operator_state():
+    return REDIS.get('operator_state')
 
 
 def set_last_file_path(user_id, path):
@@ -121,5 +123,3 @@ def get_last_file_path(user_id):
         return json.loads(REDIS.get(f'{user_id}last_file_path'))
     except TypeError:
         return False
-
-

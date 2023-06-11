@@ -4,7 +4,7 @@ from telebot import types
 
 from services.db_data import get_directories, \
     get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers, get_sub_directions, \
-    get_users_data_from_db
+    get_users_data_from_db, get_user_data_from_db
 from services.redis_db import add_keyboard_for_questions_in_redis, set_max_question_id_in_redis
 
 logger = logging.getLogger(__name__)
@@ -136,13 +136,6 @@ def keyboard_for_change_answer():
     return keyboard
 
 
-def keyboard_for_enter_dialogue():
-    keyboard = types.InlineKeyboardMarkup(row_width=True)
-    key1 = types.InlineKeyboardButton(text='✅Вступить в диалог', callback_data='enter_into_a_dialog')
-    keyboard.add(key1)
-    return keyboard
-
-
 def keyboard_for_delete_dialogue():
     keyboard = types.InlineKeyboardMarkup(row_width=True)
     key1 = types.InlineKeyboardButton(text='❌Выйти из диалога', callback_data='cancel_from_dialog')
@@ -231,14 +224,41 @@ def keyboard_enter_menu_for_operator():
     return keyboard
 
 
-def keyboard_queue_of_clients(queue_of_clients):
-    users_data = get_users_data_from_db(queue_of_clients)
+def keyboard_queue_of_clients(clients):
     keyboard = types.InlineKeyboardMarkup(row_width=True)
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_enter_menu_for_operator')
+    if clients is None:
+        keyboard.add(cancel)
+        return keyboard
+    users_data = get_users_data_from_db(clients)
     for client in users_data:
         keyboard.add(types.InlineKeyboardButton(text=f'❗️{client["name"]}|{client["company"]}',
                                                 callback_data=f'queue_{client["id"]}'))
-    main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_to_enter_menu_for_operator')
-    keyboard.row(main_menu)
+    keyboard.add(cancel)
+    return keyboard
+
+
+def keyboard_with_clients(clients):
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_enter_menu_for_operator')
+    if clients is None:
+        keyboard.add(cancel)
+        return keyboard
+    users_data = get_users_data_from_db(clients)
+    for client in users_data:
+        keyboard.add(types.InlineKeyboardButton(text=f'❗️{client["name"]}|{client["company"]}',
+                                                callback_data=f'client|info_{client["id"]}'))
+    keyboard.add(cancel)
+    return keyboard
+
+
+def keyboard_for_view_customer_information(client_id: int):
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    dialogue_history = types.InlineKeyboardButton(text='История переписки', callback_data=f'dialogue_history|{client_id}')
+    insert_into_dialogue = types.InlineKeyboardButton(text='✅Вступить в диалог', callback_data=f'enter_into_a_dialog|{client_id}')
+    cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_enter_menu_for_operator')
+
+    keyboard.add(dialogue_history, insert_into_dialogue, cancel)
     return keyboard
 
 

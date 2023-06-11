@@ -2,11 +2,11 @@ from config import OPERATOR_ID, DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_TECHNICAL_TAS
 from handlers.keyboards import keyboard_for_briefings, \
     keyboard_for_questions, keyboard_for_direction, keyboard_for_sub_direction, keyboard_enter_menu_for_clients, \
     keyboard_for_answer, keyboard_for_change_answer, keyboard_for_reference_and_commercial_offer, \
-    keyboard_for_files, keyboard_for_enter_dialogue
-from handlers.send_documents import send_document_to_operator
+    keyboard_for_files, keyboard_for_view_customer_information
+from handlers.send_documents import send_document_to_telegram
 from services.db_data import get_data_questions, get_question_and_answers_from_db, \
     get_user_answer, get_user_data_from_db, get_directories
-from services.files import find_documents
+from services.files import find_user_documents
 from services.redis_db import set_question_id_in_redis, get_question_id_from_redis, \
     set_next_question_callback_in_redis, get_max_question_id_in_redis, get_keyboard_for_questions_from_redis, \
     get_last_file_path, add_client_to_queue, set_directory_in_redis
@@ -28,7 +28,7 @@ def callback_technical_tasks_and_commercial_offer(call, bot):
 
 def send_files(call, bot, directory):
     user_id = call.from_user.id
-    list_of_files = find_documents(user_id, directory)
+    list_of_files = find_user_documents(user_id, directory)
     if list_of_files is None:
         text = 'К сожалению у вас нет оформленных файлов'
     else:
@@ -173,8 +173,14 @@ def callback_for_grade(call, bot):
         case 'client_grade_yes':
             user_data = get_user_data_from_db(call.from_user.id)
             path_to_file = get_last_file_path(call.from_user.id)
-            send_document_to_operator(bot, user_data, path_to_file)
+            caption = f"Техническое задание от пользователя:\n{user_data['name']}\n" \
+                      f"Username: {user_data['tg_username']}\n" \
+                      f"Компания: {user_data['company']}\n" \
+                      f"Телефон: {user_data['phone']}\n" \
+                      f"Website: {user_data['website']}\n"
+            visible_file_name = f'Тех.задание компании {user_data["company"]}.docx'
+            send_document_to_telegram(bot, OPERATOR_ID, path_to_file, caption=caption, visible_file_name=visible_file_name)
             add_client_to_queue(call.from_user.id)
-            bot.send_message(OPERATOR_ID, 'Начать чат с клиентом ?', reply_markup=keyboard_for_enter_dialogue())
+            bot.send_message(OPERATOR_ID, 'Начать чат с клиентом ?', reply_markup=keyboard_for_view_customer_information(call.from_user.id))
         case 'client_grade_no':
             bot.send_message(call.message.chat.id, f'Хорошо, отличного дня!')

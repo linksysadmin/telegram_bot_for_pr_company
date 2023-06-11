@@ -1,7 +1,7 @@
 import os
 import logging
 
-from config import BASE_DIR, DIR_FOR_TECHNICAL_TASKS, DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_OTHER_FILES, DIR_FOR_REPORTS
+from config import BASE_DIR, DIR_FOR_SAVE_DIALOGS
 from docxtpl import DocxTemplate
 from datetime import datetime
 
@@ -10,27 +10,22 @@ from services.redis_db import get_directory_from_redis
 logger = logging.getLogger(__name__)
 
 
-def find_files(user_id: int, directory_path: str):
+def find_files(directory_path: str):
     try:
-        user_folder = str(user_id)
-        user_directory = os.path.join(directory_path, user_folder)
-        files = os.listdir(user_directory)
-        matching_files = [file for file in files]
-        return matching_files
+        return os.listdir(directory_path)
     except FileNotFoundError:
         logger.warning(f"Файлы не найдены")
         return None
 
 
-def find_documents(user_id: int, directory_path: str):
-    return find_files(user_id, directory_path)
+def get_list_of_clients_dialogue():
+    return find_files(DIR_FOR_SAVE_DIALOGS)
 
 
-def get_path_to_file(callback_data, client_id, call_id):
-    filename = extract_filename_from_string(callback_data)
-    directory = get_directory_from_redis(call_id)
-    path_to_file = f'{directory}/{client_id}/{filename}'
-    return path_to_file
+def find_user_documents(user_id: int, directory_path: str):
+    user_folder = str(user_id)
+    directory_path = os.path.join(directory_path, user_folder)
+    return find_files(directory_path)
 
 
 def extract_filename_from_string(callback: str) -> str:
@@ -78,3 +73,6 @@ def save_file(path, file, filename):
             new_file.write(file)
     except FileNotFoundError:
         logger.warning(f"У клиента еще нет папки с файлами")
+
+
+

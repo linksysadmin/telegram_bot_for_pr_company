@@ -1,9 +1,12 @@
 from handlers import dialog, clients, send_documents, operator, games
 from handlers.clients import *
-from handlers.commands import start_for_operator, start_for_unauthorized_clients, delete_state_, test_, start_for_clients
+from handlers.commands import start_for_operator, start_for_unauthorized_clients, delete_state_, test_, \
+    start_for_clients
+from handlers.dialog import  callback_enter_into_a_dialog, callback_client_info
 from handlers.get_info import get_user_name, phone_incorrect, get_user_phone, get_user_company, \
     get_answer_from_user, get_user_website, send_user_answers_to_db, next_question, get_commercial_offer_file, \
     get_other_file, get_report_file, get_technical_task_file
+from handlers.operator import callback_dialogue_history
 from services.db_data import get_directories
 from services.filters import CheckPhoneNumber, ContactForm, CheckConsent, CheckFile, CheckUserRegistration, \
     CheckPathToSection, CheckPathToSectionWithSubDirectory, CheckPathToSectionWithoutSubDirectory, FinishPoll, \
@@ -38,7 +41,8 @@ def registration_filters(bot, custom_filters):
 def registration_commands(bot):
     """   Регистрация команд telegram бота """
     bot.register_message_handler(commands=['start'], callback=start_for_operator, pass_bot=True, check_operator=True)
-    bot.register_message_handler(commands=['start'], callback=start_for_clients, pass_bot=True, check_user_registration=True)
+    bot.register_message_handler(commands=['start'], callback=start_for_clients, pass_bot=True,
+                                 check_user_registration=True)
     bot.register_message_handler(commands=['start'], callback=start_for_unauthorized_clients, pass_bot=True,
                                  check_user_registration=False)
     bot.register_message_handler(commands=['test'], callback=test_, pass_bot=True)
@@ -154,8 +158,16 @@ def registration_menu_navigation(bot):
                                         callback=callback_cancel_from_inline_menu, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "cancel_to_directions",
                                         callback=callback_cancel_to_directions, pass_bot=True)
-    bot.register_callback_query_handler(func=lambda callback: callback.data == "enter_into_a_dialog",
-                                        callback=dialog.callback_enter_into_a_dialog, pass_bot=True)
+
+
+
+    bot.register_callback_query_handler(func=lambda callback: "client|info_" in callback.data,
+                                        callback=callback_client_info, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: "enter_into_a_dialog|" in callback.data,
+                                        callback=callback_enter_into_a_dialog, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: 'dialogue_history|' in callback.data,
+                                        callback=callback_dialogue_history, pass_bot=True)
+
     bot.register_callback_query_handler(func=lambda callback: callback.data == "cancel_from_dialog",
                                         callback=dialog.callback_operator_left_dialog, pass_bot=True,
                                         check_operator=True)
@@ -164,6 +176,7 @@ def registration_menu_navigation(bot):
                                         check_operator=False)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "change_answer",
                                         callback=callback_for_change_answer, pass_bot=True)
+
 
     bot.register_callback_query_handler(func=lambda callback: callback.data == "technical_tasks",
                                         callback=callback_technical_tasks, pass_bot=True)
@@ -193,9 +206,16 @@ def registration_menu_navigation(bot):
                                         pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: 'queue_' in callback.data,
                                         callback=operator.callback_queue, pass_bot=True)
-    bot.register_callback_query_handler(
-        func=lambda callback: callback.data in ('requests', 'clients', 'tasks', 'settings'),
-        callback=operator.callback_for_enter_menu, pass_bot=True)
+
+    bot.register_callback_query_handler(func=lambda callback: callback.data == 'requests',
+                                        callback=operator.callback_requests_for_operator, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == 'clients',
+                                        callback=operator.callback_clients_for_operator, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == 'tasks',
+                                        callback=operator.callback_tasks_for_operator, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == 'settings',
+                                        callback=operator.callback_settings_for_operator, pass_bot=True)
+
     bot.register_callback_query_handler(func=lambda callback: 'send_file_' in callback.data,
                                         callback=send_documents.callback_send_file_for_operator, pass_bot=True,
                                         check_operator=True)

@@ -9,7 +9,7 @@ from db import fetch_all, execute
 logger = logging.getLogger(__name__)
 
 
-def get_user_data_from_db(user_id: int):
+def get_user_data_from_db(user_id: int) -> dict:
     data = fetch_all(sql='SELECT * FROM clients WHERE id = %s',
                      params=(user_id,))
     return {'date_of_registration': data[0][0].strftime('%d-%m-%Y'), 'id': data[0][1], 'name': data[0][2],
@@ -17,7 +17,7 @@ def get_user_data_from_db(user_id: int):
             'documents': data[0][7]}
 
 
-def get_users_data_from_db(user_ids: list):
+def get_users_data_from_db(user_ids: list) -> list | None:
     try:
         if len(user_ids) == 1:
             user_ids_query = f"('{user_ids[0]}')"

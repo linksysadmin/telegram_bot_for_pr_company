@@ -13,4 +13,10 @@ TEXT_MESSAGES = {
     'chat_with_operator': 'Перейти в диалог: @mrh_agency',
     'menu': 'Выберите: ',
     'scenario': 'Сценарий:',
+    'caption_for_technical_tasks': 'Техническое задание от пользователя:\n{name}\n'
+               'Username: {tg_username}\n'
+               'Компания: {company]}\n'
+               'Телефон: {phone}\n'
+               'Website: {website}\n',
+    'visible_file_name_for_technical_tasks': 'Тех.задание компании {company}.docx'
 }

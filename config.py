@@ -25,5 +25,5 @@ MySQL_DB = os.getenv('MySQL_DB')
 DIR_FOR_TECHNICAL_TASKS = f'{BASE_DIR}/static/documents/technical_tasks'
 DIR_FOR_COMMERCIAL_OFFERS = f'{BASE_DIR}/static/documents/commercial_offers'
 DIR_FOR_REPORTS = f'{BASE_DIR}/static/documents/reports'
-DIR_FOR_OTHER_FILES = f'{BASE_DIR}/static/documents/other'
+DIR_FOR_OTHER_FILES = f'{BASE_DIR}/static/documents/other_documents'
 DIR_FOR_SAVE_DIALOGS = f'{BASE_DIR}/static/documents/dialogs'
