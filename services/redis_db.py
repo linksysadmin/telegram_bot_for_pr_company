@@ -21,11 +21,28 @@ def get_first_client_from_queue():
         return None
 
 
-def set_directory_in_redis(user_id, path: str):
+def set_user_to_display_information_in_redis(user_id) -> None:
+    REDIS.set(f'user_to_display_information', user_id)
+
+
+def get_user_to_display_information_from_redis():
+    return int(REDIS.get(f'user_to_display_information'))
+
+
+def save_dict_of_path_for_download_file_in_redis(user_id, dict_of_path: dict) -> None:
+    REDIS.set(f'dict_of_path|{user_id}', json.dumps(dict_of_path))
+
+
+def get_path_for_download_file_by_key_from_redis(user_id, key_of_path: int) -> str:
+    all_path = json.loads(REDIS.get(f'dict_of_path|{user_id}'))
+    return all_path[key_of_path]
+
+
+def set_selected_directory_in_redis(user_id, path: str):
     REDIS.set(f'path_to_directory|{user_id}', json.dumps(path))
 
 
-def get_directory_from_redis(user_id):
+def get_selected_directory_from_redis(user_id):
     return json.loads(REDIS.get(f'path_to_directory|{user_id}'))
 
 
@@ -123,3 +140,7 @@ def get_last_file_path(user_id):
         return json.loads(REDIS.get(f'{user_id}last_file_path'))
     except TypeError:
         return False
+
+
+def clear_all_cache_from_redis() -> None:
+    REDIS.flushdb()

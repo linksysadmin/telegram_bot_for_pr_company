@@ -1,11 +1,9 @@
 import os
 import logging
 
-from config import BASE_DIR, DIR_FOR_SAVE_DIALOGS
+from config import BASE_DIR, DIR_FOR_SAVE_DIALOGS, DIR_FOR_TECHNICAL_TASKS, DIR_FOR_COMMERCIAL_OFFERS
 from docxtpl import DocxTemplate
 from datetime import datetime
-
-from services.redis_db import get_directory_from_redis
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +21,20 @@ def get_list_of_clients_dialogue():
 
 
 def find_user_documents(user_id: int, directory_path: str):
-    user_folder = str(user_id)
-    directory_path = os.path.join(directory_path, user_folder)
-    return find_files(directory_path)
+    try:
+        user_folder = str(user_id)
+        directory_path = os.path.join(directory_path, user_folder)
+        list_of_files = find_files(directory_path)
+        list_of_files_with_path = [directory_path + '/' + file for file in list_of_files]
+        dict_of_files = {i: list_of_files_with_path[i] for i in range(len(list_of_files_with_path))}
+        return dict_of_files
+    except TypeError:
+        return None
 
+
+if __name__ == '__main__':
+    x = find_user_documents(5432693304, DIR_FOR_TECHNICAL_TASKS)
+    print(x)
 
 def extract_filename_from_string(callback: str) -> str:
     """
@@ -74,5 +82,11 @@ def save_file(path, file, filename):
     except FileNotFoundError:
         logger.warning(f"У клиента еще нет папки с файлами")
 
+
+def file_check(path):
+    if os.path.isfile(path):
+        return path
+    else:
+        return None
 
 

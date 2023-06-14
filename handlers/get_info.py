@@ -12,7 +12,7 @@ from services.files import save_file
 from services.redis_db import add_answers_to_list, get_user_answers, \
     get_question_id_from_redis, delete_user_answers_from_redis, get_keyboard_for_questions_from_redis, \
     get_next_question_callback_from_redis, set_question_id_in_redis, set_next_question_callback_in_redis, \
-    get_max_question_id_in_redis, get_first_client_from_queue
+    get_max_question_id_in_redis, get_first_client_from_queue, get_user_to_display_information_from_redis
 from services.states import MyStates
 
 logger = logging.getLogger(__name__)
@@ -120,33 +120,92 @@ def send_user_answers_to_db(message, bot):
                      reply_markup=keyboard_for_questions(message.from_user.id, path=path))
 
 
-def save_file_and_set_state(message, bot, directory):
-    client_id = get_first_client_from_queue()
-    bot.send_document(client_id, document=message.document.file_id)
+def get_technical_task_file(message, bot):
+    client_id = get_user_to_display_information_from_redis()
     file_info = bot.get_file(message.document.file_id)
     downloaded_file = bot.download_file(file_info.file_path)
-    path = f'{directory}/{client_id}'
+    path = f'{DIR_FOR_TECHNICAL_TASKS}/{client_id}'
     save_file(path=path, file=downloaded_file, filename=message.document.file_name)
-    bot.set_state(message.from_user.id, MyStates.dialogue_with_client)
-
-
-def get_technical_task_file(message, bot):
-    save_file_and_set_state(message, bot, DIR_FOR_TECHNICAL_TASKS)
+    bot.delete_state(message.from_user.id, message.chat.id)
+    bot.send_message(message.from_user.id, 'Файл загружен в базу данных')
 
 
 def get_commercial_offer_file(message, bot):
-    save_file_and_set_state(message, bot, DIR_FOR_COMMERCIAL_OFFERS)
+    client_id = get_user_to_display_information_from_redis()
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    path = f'{DIR_FOR_COMMERCIAL_OFFERS}/{client_id}'
+    save_file(path=path, file=downloaded_file, filename=message.document.file_name)
+    bot.delete_state(message.from_user.id, message.chat.id)
+    bot.send_message(message.from_user.id, 'Файл загружен в базу данных')
 
 
 def get_report_file(message, bot):
-    save_file_and_set_state(message, bot, DIR_FOR_REPORTS)
+    client_id = get_user_to_display_information_from_redis()
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    path = f'{DIR_FOR_REPORTS}/{client_id}'
+    save_file(path=path, file=downloaded_file, filename=message.document.file_name)
+    bot.delete_state(message.from_user.id, message.chat.id)
+    bot.send_message(message.from_user.id, 'Файл загружен в базу данных')
 
 
 def get_other_file(message, bot):
-    save_file_and_set_state(message, bot, DIR_FOR_OTHER_FILES)
+    client_id = get_user_to_display_information_from_redis()
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    path = f'{DIR_FOR_OTHER_FILES}/{client_id}'
+    save_file(path=path, file=downloaded_file, filename=message.document.file_name)
+    bot.delete_state(message.from_user.id, message.chat.id)
+    bot.send_message(message.from_user.id, 'Файл загружен в базу данных')
+
+
+def get_technical_task_file_from_dialogue(message, bot):
+    client_id = get_first_client_from_queue()
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    path = f'{DIR_FOR_TECHNICAL_TASKS}/{client_id}'
+    save_file(path=path, file=downloaded_file, filename=message.document.file_name)
+    bot.send_document(client_id, document=message.document.file_id)
+    bot.set_state(message.from_user.id, MyStates.dialogue_with_client)
+
+
+def get_commercial_offer_file_from_dialogue(message, bot):
+    client_id = get_first_client_from_queue()
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    path = f'{DIR_FOR_COMMERCIAL_OFFERS}/{client_id}'
+    save_file(path=path, file=downloaded_file, filename=message.document.file_name)
+    bot.send_document(client_id, document=message.document.file_id)
+    bot.set_state(message.from_user.id, MyStates.dialogue_with_client)
+
+
+def get_report_file_from_dialogue(message, bot):
+    client_id = get_first_client_from_queue()
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    path = f'{DIR_FOR_REPORTS}/{client_id}'
+    save_file(path=path, file=downloaded_file, filename=message.document.file_name)
+    bot.send_document(client_id, document=message.document.file_id)
+    bot.set_state(message.from_user.id, MyStates.dialogue_with_client)
+
+
+def get_other_file_from_dialogue(message, bot):
+    client_id = get_first_client_from_queue()
+    file_info = bot.get_file(message.document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    path = f'{DIR_FOR_OTHER_FILES}/{client_id}'
+    save_file(path=path, file=downloaded_file, filename=message.document.file_name)
+    bot.send_document(client_id, document=message.document.file_id)
+    bot.set_state(message.from_user.id, MyStates.dialogue_with_client)
 
 
 def phone_incorrect(message, bot):
     """Некорректный ввод телефона"""
     bot.send_message(message.chat.id, 'Некорректный ввод.\nВведите в формате:\n\n"+7XXXXXXXXXX",\n'
                                       '8XXXXXXXXXX\n9XXXXXXXXX\n\nПример: 89953423452')
+
+
+def file_incorrect(message, bot):
+    """Некорректный файл """
+    bot.send_message(message.chat.id, 'Это не файл!')

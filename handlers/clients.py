@@ -1,17 +1,23 @@
+import logging
+
 from config import OPERATOR_ID, DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_TECHNICAL_TASKS, DIR_FOR_OTHER_FILES, DIR_FOR_REPORTS
 from handlers.keyboards import keyboard_for_briefings, \
     keyboard_for_questions, keyboard_for_direction, keyboard_for_sub_direction, keyboard_enter_menu_for_clients, \
     keyboard_for_answer, keyboard_for_change_answer, keyboard_for_reference_and_commercial_offer, \
     keyboard_for_files, keyboard_for_view_customer_information
-from handlers.send_documents import send_document_to_telegram
+from handlers.documents import send_document_to_telegram
 from services.db_data import get_data_questions, get_question_and_answers_from_db, \
     get_user_answer, get_user_data_from_db, get_directories
 from services.files import find_user_documents
 from services.redis_db import set_question_id_in_redis, get_question_id_from_redis, \
     set_next_question_callback_in_redis, get_max_question_id_in_redis, get_keyboard_for_questions_from_redis, \
-    get_last_file_path, add_client_to_queue, set_directory_in_redis
+    get_last_file_path, add_client_to_queue, set_selected_directory_in_redis, \
+    save_dict_of_path_for_download_file_in_redis
 from services.states import MyStates
 from handlers.text_messages import TEXT_MESSAGES
+
+
+logger = logging.getLogger(__name__)
 
 
 def callback_scenario(call, bot):
@@ -26,32 +32,34 @@ def callback_technical_tasks_and_commercial_offer(call, bot):
                           reply_markup=keyboard_for_reference_and_commercial_offer())
 
 
-def send_files(call, bot, directory):
+def show_files_for_client(call, bot, directory):
     user_id = call.from_user.id
-    list_of_files = find_user_documents(user_id, directory)
-    if list_of_files is None:
+    logger.info(f'Клиент {user_id} запросил файлы')
+    dict_path_to_files = find_user_documents(user_id, directory)
+    set_selected_directory_in_redis(call.from_user.id, directory)
+    if not dict_path_to_files:
         text = 'К сожалению у вас нет оформленных файлов'
     else:
-        set_directory_in_redis(user_id, directory)
+        save_dict_of_path_for_download_file_in_redis(user_id, dict_path_to_files)
         text = 'Выберите какой файл вы хотите получить:'
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                          text=text, reply_markup=keyboard_for_files(list_of_files))
+                          text=text, reply_markup=keyboard_for_files(dict_path_to_files))
 
 
 def callback_technical_tasks(call, bot):
-    send_files(call, bot, DIR_FOR_TECHNICAL_TASKS)
+    show_files_for_client(call, bot, DIR_FOR_TECHNICAL_TASKS)
 
 
 def callback_commercial_offer(call, bot):
-    send_files(call, bot, DIR_FOR_COMMERCIAL_OFFERS)
+    show_files_for_client(call, bot, DIR_FOR_COMMERCIAL_OFFERS)
 
 
 def callback_reports(call, bot):
-    send_files(call, bot, DIR_FOR_REPORTS)
+    show_files_for_client(call, bot, DIR_FOR_REPORTS)
 
 
 def callback_documents(call, bot):
-    send_files(call, bot, DIR_FOR_OTHER_FILES)
+    show_files_for_client(call, bot, DIR_FOR_OTHER_FILES)
 
 
 def callback_chat_with_operator(call, bot):

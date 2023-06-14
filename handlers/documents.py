@@ -7,7 +7,9 @@ from handlers.keyboards import keyboard_for_clients_in_brief
 from services.db_data import get_user_data_from_db, get_user_list_of_questions_informal_and_answers, \
     delete_user_answers_in_section, update_info_about_user_docs_in_db
 from services.files import generate_technical_task_file, extract_filename_from_string
-from services.redis_db import set_last_file_path, get_first_client_from_queue, get_directory_from_redis
+from services.redis_db import set_last_file_path, get_first_client_from_queue, get_selected_directory_from_redis, \
+    get_path_for_download_file_by_key_from_redis, set_user_to_display_information_in_redis, \
+    get_user_to_display_information_from_redis
 
 logger = logging.getLogger(__name__)
 
@@ -45,31 +47,47 @@ def callback_for_registration_technical_exercise(call, bot):
                               visible_file_name=f'{user_data["company"]}.docx')
 
 
-def callback_send_file_for_client(call, bot):
+def callback_get_file_for_client(call, bot):
     bot.delete_message(call.message.chat.id, call.message.id)
     client_id = call.from_user.id
-    filename = extract_filename_from_string(call.data)
-    directory = get_directory_from_redis(call.from_user.id)
-    path_to_file = f'{directory}/{client_id}/{filename}'
+    key_for_path = call.data.split('|')[-1]
+    path_to_file = get_path_for_download_file_by_key_from_redis(client_id, key_for_path)
     logger.info(f'Клиент {client_id} запросил файл: {path_to_file}')
     user_data = get_user_data_from_db(client_id)
+    file_type = path_to_file.split('.')[-1]
     send_document_to_telegram(bot, client_id, path_to_file, caption="Ваш файл",
-                              visible_file_name=f'{user_data["company"]}.docx')
+                              visible_file_name=f'{user_data["company"]}.{file_type}')
 
 
-def callback_send_file_for_operator(call, bot):
+def callback_get_file_for_operator_in_dialogue(call, bot):
     client_id = get_first_client_from_queue()
-    filename = extract_filename_from_string(call.data)
-    directory = get_directory_from_redis(call.from_user.id)
-    path_to_file = f'{directory}/{client_id}/{filename}'
+    key_for_path = call.data.split('|')[-1]
+    path_to_file = get_path_for_download_file_by_key_from_redis(client_id, key_for_path)
     logger.info(f'Оператор {call.from_user.id} запросил файл клиента: {path_to_file}')
     user_data = get_user_data_from_db(client_id)
-    caption = f"Техническое задание от пользователя:\n{user_data['name']}\n"\
+    file_type = path_to_file.split('.')[-1]
+    caption = f"Файл пользователя:\n{user_data['name']}\n"\
               f"Username: {user_data['tg_username']}\n"\
               f"Компания: {user_data['company']}\n"\
               f"Телефон: {user_data['phone']}\n"\
               f"Website: {user_data['website']}\n"
-    visible_file_name = f'Тех.задание компании {user_data["company"]}.docx'
+    visible_file_name = f'{user_data["company"]}.{file_type}'
+    send_document_to_telegram(bot, OPERATOR_ID, path_to_file, caption=caption, visible_file_name=visible_file_name)
+
+
+def callback_get_file_for_operator(call, bot):
+    client_id = get_user_to_display_information_from_redis()
+    key_for_path = call.data.split('|')[-1]
+    path_to_file = get_path_for_download_file_by_key_from_redis(client_id, key_for_path)
+    logger.info(f'Оператор {call.from_user.id} запросил файл клиента: {path_to_file}')
+    user_data = get_user_data_from_db(client_id)
+    file_type = path_to_file.split('.')[-1]
+    caption = f"Файл пользователя:\n{user_data['name']}\n"\
+              f"Username: {user_data['tg_username']}\n"\
+              f"Компания: {user_data['company']}\n"\
+              f"Телефон: {user_data['phone']}\n"\
+              f"Website: {user_data['website']}\n"
+    visible_file_name = f'{user_data["company"]}.{file_type}'
     send_document_to_telegram(bot, OPERATOR_ID, path_to_file, caption=caption, visible_file_name=visible_file_name)
 
 

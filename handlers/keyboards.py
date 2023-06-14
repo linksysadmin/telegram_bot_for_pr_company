@@ -4,7 +4,7 @@ from telebot import types
 
 from services.db_data import get_directories, \
     get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers, get_sub_directions, \
-    get_users_data_from_db, get_user_data_from_db
+    get_users_data_from_db
 from services.redis_db import add_keyboard_for_questions_in_redis, set_max_question_id_in_redis
 
 logger = logging.getLogger(__name__)
@@ -39,16 +39,17 @@ def keyboard_for_reference_and_commercial_offer():
     return keyboard
 
 
-def keyboard_for_files(list_of_files: list = None):
+def keyboard_for_files(dict_path_to_files):
     keyboard = types.InlineKeyboardMarkup(row_width=True)
     cancel = types.InlineKeyboardButton(text='Назад', callback_data='technical_tasks_and_commercial_offer')
     main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
-    if list_of_files is None:
+    if dict_path_to_files is None:
         keyboard.row(cancel, main_menu)
         return keyboard
     else:
-        for file in list_of_files:
-            keyboard.add(types.InlineKeyboardButton(text=f'{file}', callback_data=f'send_file_{file}'))
+        for key, value in dict_path_to_files.items():
+            filename = value.split('/')[-1]
+            keyboard.add(types.InlineKeyboardButton(text=f'{filename}', callback_data=f'get|file|{key}'))
         keyboard.row(cancel, main_menu)
         return keyboard
 
@@ -224,69 +225,89 @@ def keyboard_enter_menu_for_operator():
     return keyboard
 
 
-def keyboard_queue_of_clients(clients):
+def keyboard_with_clients(clients, callback_data_prefix):
     keyboard = types.InlineKeyboardMarkup(row_width=True)
     cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_enter_menu_for_operator')
-    if clients is None:
+    if not clients:
         keyboard.add(cancel)
         return keyboard
     users_data = get_users_data_from_db(clients)
     for client in users_data:
         keyboard.add(types.InlineKeyboardButton(text=f'❗️{client["name"]}|{client["company"]}',
-                                                callback_data=f'queue_{client["id"]}'))
-    keyboard.add(cancel)
-    return keyboard
-
-
-def keyboard_with_clients(clients):
-    keyboard = types.InlineKeyboardMarkup(row_width=True)
-    cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_enter_menu_for_operator')
-    if clients is None:
-        keyboard.add(cancel)
-        return keyboard
-    users_data = get_users_data_from_db(clients)
-    for client in users_data:
-        keyboard.add(types.InlineKeyboardButton(text=f'❗️{client["name"]}|{client["company"]}',
-                                                callback_data=f'client|info_{client["id"]}'))
+                                                callback_data=f'{callback_data_prefix}_{client["id"]}'))
     keyboard.add(cancel)
     return keyboard
 
 
 def keyboard_for_view_customer_information(client_id: int):
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-    dialogue_history = types.InlineKeyboardButton(text='История переписки', callback_data=f'dialogue_history|{client_id}')
-    insert_into_dialogue = types.InlineKeyboardButton(text='✅Вступить в диалог', callback_data=f'enter_into_a_dialog|{client_id}')
+    dialogue_history = types.InlineKeyboardButton(text='История переписки',
+                                                  callback_data=f'dialogue_history|{client_id}')
+    show_user_documents = types.InlineKeyboardButton(text='Документы пользователя',
+                                                     callback_data=f'get_documents|{client_id}')
+    insert_into_dialogue = types.InlineKeyboardButton(text='✅Вступить в диалог',
+                                                      callback_data=f'enter_into_a_dialog|{client_id}')
     cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_enter_menu_for_operator')
 
-    keyboard.add(dialogue_history, insert_into_dialogue, cancel)
+    keyboard.add(dialogue_history, show_user_documents, insert_into_dialogue, cancel)
     return keyboard
 
 
 def keyboard_for_menu_in_dialogue():
     keyboard = types.InlineKeyboardMarkup(row_width=True)
     tech_tasks = types.InlineKeyboardButton(text='Технические задания и брифы',
-                                            callback_data='technical_tasks_for_operator')
+                                            callback_data='technical_tasks_for_operator_in_dialogue')
     commercial_offers = types.InlineKeyboardButton(text='Коммерческие предложения',
-                                                   callback_data='commercial_offers_for_operator')
-    reports = types.InlineKeyboardButton(text='Отчеты', callback_data='reports_for_operator')
-    documents = types.InlineKeyboardButton(text='Документы', callback_data='other_documents_for_operator')
+                                                   callback_data='commercial_offers_for_operator_in_dialogue')
+    reports = types.InlineKeyboardButton(text='Отчеты', callback_data='reports_for_operator_in_dialogue')
+    documents = types.InlineKeyboardButton(text='Документы', callback_data='other_documents_for_operator_in_dialogue')
     cancel = types.InlineKeyboardButton(text='❌Выйти из диалога', callback_data='cancel_from_dialog')
     keyboard.add(tech_tasks, commercial_offers, reports, documents, cancel)
     return keyboard
 
 
-def keyboard_with_client_files(list_of_files):
+def keyboard_with_client_files_in_dialogue(dict_of_path_files):
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-    upload_file = types.InlineKeyboardButton(text='Загрузить файл', callback_data='upload_file')
+    upload_file = types.InlineKeyboardButton(text='Загрузить файл', callback_data='upload_file_in_dialogue')
     cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_enter_menu_in_dialogue')
-    if list_of_files is None:
+    if dict_of_path_files is None:
         keyboard.row(cancel, upload_file)
         return keyboard
     else:
-        for file in list_of_files:
-            keyboard.add(types.InlineKeyboardButton(text=f'{file}', callback_data=f'send_file_{file}'))
+        for key, value in dict_of_path_files.items():
+            filename = value.split('/')[-1]
+            keyboard.add(types.InlineKeyboardButton(text=f'{filename}', callback_data=f'get|file|{key}'))
         keyboard.row(cancel, upload_file)
         return keyboard
+
+
+def keyboard_with_client_files(dict_of_path_files):
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    upload_file = types.InlineKeyboardButton(text='Загрузить файл', callback_data='upload_file')
+    cancel = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_to_enter_menu_for_operator')
+    if dict_of_path_files is None:
+        keyboard.row(cancel, upload_file)
+        return keyboard
+    else:
+        # client_id = dict_of_path_files[0].split('/')[-2]
+        for key, value in dict_of_path_files.items():
+            filename = value.split('/')[-1]
+            keyboard.add(types.InlineKeyboardButton(text=f'{filename}', callback_data=f'get|file|{key}'))
+        keyboard.row(cancel, upload_file)
+        return keyboard
+
+
+def keyboard_menu_directions_of_documents(client_id: int):
+    keyboard = types.InlineKeyboardMarkup(row_width=True)
+    tech_tasks = types.InlineKeyboardButton(text='Технические задания и брифы',
+                                            callback_data=f'TT_for_operator|{client_id}')
+    commercial_offers = types.InlineKeyboardButton(text='Коммерческие предложения',
+                                                   callback_data=f'CO_operator|{client_id}')
+    reports = types.InlineKeyboardButton(text='Отчеты', callback_data=f'R_operator|{client_id}')
+    documents = types.InlineKeyboardButton(text='Документы', callback_data=f'OD_operator|{client_id}')
+    cancel = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_to_enter_menu_for_operator')
+    keyboard.add(tech_tasks, commercial_offers, reports, documents, cancel)
+    return keyboard
 
 
 def remove_keyboard(message, bot, text: str) -> None:

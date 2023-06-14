@@ -116,7 +116,7 @@ def send_message_to_operator(message, bot):
 def send_document_to_operator(message, bot):
     client_id = message.from_user.id
     log_dialogue = dialogue_logging(client_id)
-    bot.send_photo(OPERATOR_ID, document=message.document.file_id)
+    bot.send_document(OPERATOR_ID, document=message.document.file_id)
     log_dialogue.info('Клиент отправил файл')
 
 
