@@ -12,8 +12,10 @@ from services.filters import CheckPhoneNumber, ContactForm, CheckConsent, CheckF
 from services.states import MyStates
 
 
-def registration_filters(bot, custom_filters):
+def registration_filters(bot):
     """   Добавление фильтров сообщений   """
+    from telebot import custom_filters
+
     FILTERS = (custom_filters.StateFilter(bot),
                custom_filters.IsDigitFilter(),
                custom_filters.TextMatchFilter(),
@@ -72,6 +74,7 @@ def registration_file_handling(bot):
                                         MyStates.get_commercial_offer_file_in_dialogue,
                                         MyStates.get_report_file_in_dialogue, MyStates.get_other_file_in_dialogue],
                                  callback=get_info.file_incorrect, pass_bot=True, document=False)
+
 
 def registration_states(bot):
     """   Регистрация состояний пользователя   """
@@ -187,9 +190,6 @@ def registration_menu_navigation(bot):
     bot.register_callback_query_handler(func=lambda callback: callback.data == "cancel_from_dialog",
                                         callback=dialog.callback_operator_left_dialog, pass_bot=True,
                                         check_operator=True)
-    bot.register_callback_query_handler(func=lambda callback: callback.data == "cancel_from_dialog",
-                                        callback=dialog.callback_client_left_dialog, pass_bot=True,
-                                        check_operator=False)
     bot.register_callback_query_handler(func=lambda callback: callback.data == "change_answer",
                                         callback=callback_for_change_answer, pass_bot=True)
 
@@ -272,3 +272,12 @@ def registration_menu_navigation(bot):
                                         pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: 'client_grade_yes' or 'client_grade_yes' == callback.data,
                                         callback=clients.callback_for_grade, pass_bot=True)
+
+
+def start_registration(bot):
+    registration_filters(bot)
+    registration_commands(bot)
+    registration_file_handling(bot)
+    registration_states(bot)
+    registration_games(bot)
+    registration_menu_navigation(bot)

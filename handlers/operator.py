@@ -9,16 +9,14 @@ from handlers.keyboards import keyboard_enter_menu_for_operator, keyboard_for_vi
 from handlers.documents import send_document_to_telegram
 from handlers.text_messages import TEXT_MESSAGES
 from services.files import find_user_documents, get_list_of_clients_dialogue, file_check
-from services.redis_db import get_first_client_from_queue, get_queue_of_clients, move_client_to_first_place_in_queue, \
-    get_selected_directory_from_redis, save_dict_of_path_for_download_file_in_redis, set_selected_directory_in_redis, \
-    set_user_to_display_information_in_redis
+from services.redis_db import redis_cache
 from services.states import MyStates
 
 logger = logging.getLogger(__name__)
 
 
 def callback_requests_for_operator(call, bot):
-    queue_of_clients = get_queue_of_clients()
+    queue_of_clients = redis_cache.get_queue_of_clients()
     text = 'Запросы от пользователей'
     if not queue_of_clients:
         text = 'Запросов от пользователей нет'
@@ -71,47 +69,49 @@ def callback_menu_directions_of_documents(call, bot):
 
 
 def show_client_files_in_dialogue(call, bot, dir_path, client_id):
-    logger.info(f'Запрос файлов клиента: {client_id}')
+    if client_id is None:
+        bot.delete_message(call.message.chat.id, call.message.id)
+        return
     dict_path_to_files = find_user_documents(client_id, dir_path)
-    set_selected_directory_in_redis(call.from_user.id, dir_path)
+    redis_cache.set_selected_directory(call.from_user.id, dir_path)
     if not dict_path_to_files:
         text = f'Нет документов у клиента'
     else:
-        save_dict_of_path_for_download_file_in_redis(client_id, dict_path_to_files)
+        redis_cache.save_dict_of_path_for_download_file(client_id, dict_path_to_files)
         text = 'Выберите какой файл вы хотите получить:'
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text,
                           reply_markup=keyboard_with_client_files_in_dialogue(dict_path_to_files))
 
 
 def callback_technical_tasks_for_operator_in_dialogue(call, bot):
-    user_id = get_first_client_from_queue()
+    user_id = redis_cache.get_first_client_from_queue()
     show_client_files_in_dialogue(call, bot, DIR_FOR_TECHNICAL_TASKS, user_id)
 
 
 def callback_commercial_offers_for_operator_in_dialogue(call, bot):
-    user_id = get_first_client_from_queue()
+    user_id = redis_cache.get_first_client_from_queue()
     show_client_files_in_dialogue(call, bot, DIR_FOR_COMMERCIAL_OFFERS, user_id)
 
 
 def callback_reports_for_operator_in_dialogue(call, bot):
-    user_id = get_first_client_from_queue()
+    user_id = redis_cache.get_first_client_from_queue()
     show_client_files_in_dialogue(call, bot, DIR_FOR_REPORTS, user_id)
 
 
 def callback_other_documents_for_operator_in_dialogue(call, bot):
-    user_id = get_first_client_from_queue()
+    user_id = redis_cache.get_first_client_from_queue()
     show_client_files_in_dialogue(call, bot, DIR_FOR_OTHER_FILES, user_id)
 
 
 def show_client_files(call, bot, dir_path, client_id):
     logger.info(f'Запрос файлов клиента: {client_id}')
     dict_path_to_files = find_user_documents(client_id, dir_path)
-    set_selected_directory_in_redis(call.from_user.id, dir_path)
-    set_user_to_display_information_in_redis(client_id)
+    redis_cache.set_selected_directory(call.from_user.id, dir_path)
+    redis_cache.set_user_to_display_information(client_id)
     if not dict_path_to_files:
         text = f'Нет документов у клиента'
     else:
-        save_dict_of_path_for_download_file_in_redis(client_id, dict_path_to_files)
+        redis_cache.save_dict_of_path_for_download_file(client_id, dict_path_to_files)
         text = 'Выберите какой файл вы хотите получить:'
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text,
                           reply_markup=keyboard_with_client_files(dict_path_to_files))
@@ -144,7 +144,7 @@ def callback_cancel_to_enter_menu_in_dialogue(call, bot):
 
 
 def callback_upload_file_in_dialogue(call, bot):
-    directory = get_selected_directory_from_redis(call.from_user.id)
+    directory = redis_cache.get_selected_directory(call.from_user.id)
     logger.info(f'Выбрана директория для загрузки файла: {directory}')
     dir_to_state = {
         DIR_FOR_TECHNICAL_TASKS: MyStates.get_technical_task_file_in_dialogue,
@@ -159,7 +159,7 @@ def callback_upload_file_in_dialogue(call, bot):
 
 
 def callback_upload_file(call, bot):
-    directory = get_selected_directory_from_redis(call.from_user.id)
+    directory = redis_cache.get_selected_directory(call.from_user.id)
     logger.info(f'Выбрана директория для загрузки файла: {directory}')
     dir_to_state = {
         DIR_FOR_TECHNICAL_TASKS: MyStates.get_technical_task_file,
@@ -175,6 +175,6 @@ def callback_upload_file(call, bot):
 
 def callback_queue(call, bot):
     client_id = call.data.split('_')[1]
-    move_client_to_first_place_in_queue(client_id)
+    redis_cache.move_client_to_first_place_in_queue(client_id)
     bot.send_message(call.message.chat.id, 'Вступить в диалог с клиентом ?',
                      reply_markup=keyboard_for_view_customer_information(client_id))

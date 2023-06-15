@@ -9,10 +9,7 @@ from handlers.documents import send_document_to_telegram
 from services.db_data import get_data_questions, get_question_and_answers_from_db, \
     get_user_answer, get_user_data_from_db, get_directories
 from services.files import find_user_documents
-from services.redis_db import set_question_id_in_redis, get_question_id_from_redis, \
-    set_next_question_callback_in_redis, get_max_question_id_in_redis, get_keyboard_for_questions_from_redis, \
-    get_last_file_path, add_client_to_queue, set_selected_directory_in_redis, \
-    save_dict_of_path_for_download_file_in_redis
+from services.redis_db import redis_cache
 from services.states import MyStates
 from handlers.text_messages import TEXT_MESSAGES
 
@@ -36,11 +33,11 @@ def show_files_for_client(call, bot, directory):
     user_id = call.from_user.id
     logger.info(f'Клиент {user_id} запросил файлы')
     dict_path_to_files = find_user_documents(user_id, directory)
-    set_selected_directory_in_redis(call.from_user.id, directory)
+    redis_cache.set_selected_directory(call.from_user.id, directory)
     if not dict_path_to_files:
         text = 'К сожалению у вас нет оформленных файлов'
     else:
-        save_dict_of_path_for_download_file_in_redis(user_id, dict_path_to_files)
+        redis_cache.save_dict_of_path_for_download_file(user_id, dict_path_to_files)
         text = 'Выберите какой файл вы хотите получить:'
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                           text=text, reply_markup=keyboard_for_files(dict_path_to_files))
@@ -131,7 +128,7 @@ def callback_cancel_to_directions(call, bot):
 
 
 def callback_back_to_questions(call, bot):
-    path = get_keyboard_for_questions_from_redis(call.from_user.id)
+    path = redis_cache.get_keyboard_for_questions(call.from_user.id)
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                           text=TEXT_MESSAGES['menu'],
                           reply_markup=keyboard_for_questions(call.from_user.id, path))
@@ -140,7 +137,7 @@ def callback_back_to_questions(call, bot):
 def callback_for_change_answer(call, bot):
     bot.delete_message(call.message.chat.id, call.message.id)
     bot.set_state(call.from_user.id, MyStates.answer_to_question, call.from_user.id)
-    question_id = get_question_id_from_redis(call.from_user.id)
+    question_id = redis_cache.get_question_id(call.from_user.id)
     question, answers = get_question_and_answers_from_db(question_id)
     bot.send_message(call.message.chat.id, f'❓{question}?\n\nНапишите ответ и нажмите "✅ Отправить ответ"',
                      reply_markup=keyboard_for_answer(answers))
@@ -148,10 +145,10 @@ def callback_for_change_answer(call, bot):
 
 def callback_for_questions(call, bot):
     question_id = call.data.split('_')[1]
-    if int(question_id) <= get_max_question_id_in_redis(call.from_user.id):
+    if int(question_id) <= redis_cache.get_max_question_id(call.from_user.id):
         next_callback = f"{call.data.split('_')[0]}_{int(call.data.split('_')[1]) + 1}"
-        set_question_id_in_redis(user=call.from_user.id, question_id=question_id)
-        set_next_question_callback_in_redis(user=call.from_user.id, callback=next_callback)
+        redis_cache.set_question_id(user=call.from_user.id, question_id=question_id)
+        redis_cache.set_next_question_callback(user=call.from_user.id, callback=next_callback)
     question, answers = get_question_and_answers_from_db(question_id)
     user_answer = get_user_answer(call.from_user.id, question_id)
     if bool(user_answer):
@@ -168,7 +165,7 @@ def callback_for_questions(call, bot):
 
 def callback_for_registration(call, bot):
     question_id = call.data.split('_')[1]
-    set_question_id_in_redis(user=call.from_user.id, question_id=question_id)
+    redis_cache.set_question_id(user=call.from_user.id, question_id=question_id)
     bot.set_state(call.from_user.id, MyStates.name, call.from_user.id)
     bot.add_data(call.from_user.id, call.message.chat.id, id_question=question_id)
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
@@ -180,7 +177,7 @@ def callback_for_grade(call, bot):
     match call.data:
         case 'client_grade_yes':
             user_data = get_user_data_from_db(call.from_user.id)
-            path_to_file = get_last_file_path(call.from_user.id)
+            path_to_file = redis_cache.get_last_file_path(call.from_user.id)
             caption = f"Техническое задание от пользователя:\n{user_data['name']}\n" \
                       f"Username: {user_data['tg_username']}\n" \
                       f"Компания: {user_data['company']}\n" \
@@ -188,7 +185,7 @@ def callback_for_grade(call, bot):
                       f"Website: {user_data['website']}\n"
             visible_file_name = f'Тех.задание компании {user_data["company"]}.docx'
             send_document_to_telegram(bot, OPERATOR_ID, path_to_file, caption=caption, visible_file_name=visible_file_name)
-            add_client_to_queue(call.from_user.id)
+            redis_cache.add_client_to_queue(call.from_user.id)
             bot.send_message(OPERATOR_ID, 'Начать чат с клиентом ?', reply_markup=keyboard_for_view_customer_information(call.from_user.id))
         case 'client_grade_no':
             bot.send_message(call.message.chat.id, f'Хорошо, отличного дня!')

@@ -21,6 +21,7 @@ def get_list_of_clients_dialogue():
 
 
 def find_user_documents(user_id: int, directory_path: str):
+    logger.info(f'Запрос файлов клиента: {user_id} в папке: {directory_path}')
     try:
         user_folder = str(user_id)
         directory_path = os.path.join(directory_path, user_folder)

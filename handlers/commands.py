@@ -4,7 +4,7 @@ from handlers.text_messages import TEXT_MESSAGES
 from handlers.keyboards import remove_keyboard, keyboard_enter_menu_for_clients, \
     keyboard_for_questions, keyboard_enter_menu_for_operator
 from services.db_data import get_user_data_from_db
-from services.redis_db import delete_user_answers_from_redis, get_user_answers, get_keyboard_for_questions_from_redis
+from services.redis_db import redis_cache
 from services.states import MyStates
 
 logger = logging.getLogger(__name__)
@@ -82,9 +82,9 @@ def delete_state_(message, bot):
     match state:
         case 'MyStates:answer_to_question':
             bot.delete_state(user_id)
-            if get_user_answers(user=user_id):
-                delete_user_answers_from_redis(user=user_id)
-            path = get_keyboard_for_questions_from_redis(user_id)
+            if redis_cache.get_user_answers(user=user_id):
+                redis_cache.delete_user_answers(user=user_id)
+            path = redis_cache.get_keyboard_for_questions(user_id)
             remove_keyboard(message, bot, 'Отменено')
             bot.send_message(user_id, 'Выберите вопрос:',
                              reply_markup=keyboard_for_questions(user_id, path=path))

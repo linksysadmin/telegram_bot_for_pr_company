@@ -4,13 +4,13 @@ import logging
 import flask
 import colorlog
 import telebot
-from telebot import custom_filters
+
 from telebot.storage import StateRedisStorage
 
+from handlers.register_functions import start_registration
 from config import TELEGRAM_BOT_API_TOKEN
 
-from handlers.register_functions import *
-from services.redis_db import clear_all_cache_from_redis
+from services.redis_db import redis_cache
 
 formatter = colorlog.ColoredFormatter(
     '%(log_color)s%(name)s %(asctime)s - %(levelname)s - %(message)s',
@@ -28,19 +28,15 @@ console_handler.setFormatter(formatter)
 logging.basicConfig(handlers=[console_handler], level=logging.INFO)
 
 bot = telebot.TeleBot(TELEGRAM_BOT_API_TOKEN, state_storage=StateRedisStorage(), parse_mode='HTML')
-registration_filters(bot, custom_filters)
-registration_commands(bot)
-registration_file_handling(bot)
-registration_states(bot)
-registration_games(bot)
-registration_menu_navigation(bot)
+
+start_registration(bot)
 
 try:
     bot.infinity_polling(skip_pending=True)
 except KeyboardInterrupt:
     print('Выход из программы')
 finally:
-    clear_all_cache_from_redis()
+    redis_cache.clear_all_cache()
 
 # app = flask.Flask(__name__)
 # @app.route('/', methods=['POST'])

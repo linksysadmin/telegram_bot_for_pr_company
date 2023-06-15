@@ -2,11 +2,8 @@ import logging
 import os
 
 from config import OPERATOR_ID, DIR_FOR_SAVE_DIALOGS
-from handlers.keyboards import keyboard_for_delete_dialogue, \
-    keyboard_enter_menu_for_clients, keyboard_for_menu_in_dialogue, keyboard_for_view_customer_information
-from services.redis_db import get_operator_state, set_operator_state, add_client_to_queue, \
-    get_first_client_and_delete_from_queue, \
-    get_first_client_from_queue, remove_client_from_queue, move_client_to_first_place_in_queue
+from handlers.keyboards import keyboard_for_menu_in_dialogue, keyboard_for_view_customer_information
+from services.redis_db import redis_cache
 from services.states import MyStates
 
 logger = logging.getLogger(__name__)
@@ -29,18 +26,18 @@ def dialogue_logging(client_id):
 
 def callback_instant_messaging_service(call, bot):
     client_id = call.from_user.id
-    operator_state = get_operator_state()
+    operator_state = redis_cache.get_operator_state()
     logger.info(f'Запрос от клиента {client_id} на диалог')
     match operator_state:
         case b'free' | None:
-            set_operator_state(b'busy')
+            redis_cache.set_operator_state(b'busy')
             logger.info(f'Перевод статуса оператора в "занят" (busy)')
             bot.send_message(OPERATOR_ID, f'💬Запрос на диалог!🧨\n\nОт пользователя:\nID: {call.from_user.id}\n'
                                           f'Имя: {call.from_user.first_name}',
                              reply_markup=keyboard_for_view_customer_information(client_id))
         case _:
             logger.info(f'Оператор занят')
-    match add_client_to_queue(client_id):
+    match redis_cache.add_client_to_queue(client_id):
         case True:
             logger.info(f'Клиент {client_id} зарегистрирован в очереди и ждет ответа оператора')
             bot.send_message(call.message.chat.id, 'Подождите пока оператор к вам присоединится...')
@@ -55,19 +52,15 @@ def callback_instant_messaging_service(call, bot):
 def callback_enter_into_a_dialog(call, bot):
     operator = call.from_user.id
     client_id = int(call.data.split('|')[1])
-    move_client_to_first_place_in_queue(client_id)
-    # if client_id is None:
-    #     logger.warning('Диалог в который пытается вступить оператор не актуален')
-    #     bot.send_message(operator, 'Диалог не актуален')
-    #     return
-    set_operator_state(b'busy')
+    redis_cache.move_client_to_first_place_in_queue(client_id)
+    redis_cache.set_operator_state(b'busy')
     logger.info(f'Оператор вступил в диалог с клиентом {client_id}')
     bot.set_state(client_id, MyStates.dialogue_with_operator)
     bot.set_state(operator, MyStates.dialogue_with_client)
     bot.delete_message(call.message.chat.id, call.message.id)
-    bot.send_message(client_id, 'Вы вступили в диалог с оператором\n', reply_markup=keyboard_for_delete_dialogue())
+    bot.send_message(client_id, 'Вы вступили в диалог с оператором\n')
     bot.send_message(operator, 'Вы вступили в диалог с клиентом\nНапишите ему:',
-                     reply_markup=keyboard_for_delete_dialogue())
+                     reply_markup=keyboard_for_menu_in_dialogue())
     logger.info(
         f'Состояние клиента - {bot.get_state(client_id)}, оператора - {bot.get_state(operator)}')
 
@@ -84,21 +77,21 @@ def send_request_to_operator(message, bot):
 
 
 def send_message_to_client(message, bot):
-    client_id = get_first_client_from_queue()
+    client_id = redis_cache.get_first_client_from_queue()
     log_dialogue = dialogue_logging(client_id)
     bot.send_message(client_id, f'💬Сообщение от оператора:\n\n{message.text}')
     log_dialogue.info(f'Сообщение от оператора: {message.text}')
 
 
 def send_document_to_client(message, bot):
-    client_id = get_first_client_from_queue()
+    client_id = redis_cache.get_first_client_from_queue()
     log_dialogue = dialogue_logging(client_id)
     bot.send_document(client_id, document=message.document.file_id)
     log_dialogue.info('Оператор отправил файл')
 
 
 def send_photo_to_client(message, bot):
-    client_id = get_first_client_from_queue()
+    client_id = redis_cache.get_first_client_from_queue()
     log_dialogue = dialogue_logging(client_id)
     photo_id = message.photo[-1].file_id
     bot.send_photo(client_id, photo=photo_id)
@@ -128,31 +121,9 @@ def send_photo_to_operator(message, bot):
     log_dialogue.info('Клиент отправил картинку')
 
 
-def callback_client_left_dialog(call, bot):
-    client_id = call.from_user.id
-    remove_client_from_queue(client_id)
-    bot.delete_message(call.message.chat.id, call.message.id)
-    bot.delete_state(OPERATOR_ID, OPERATOR_ID)
-    bot.delete_state(client_id, client_id)
-    logger.info(f'Клиент {client_id} завершил диалог')
-    logger.info(
-        f'Состояние клиента - {bot.get_state(client_id, client_id)}, оператора - {bot.get_state(OPERATOR_ID, OPERATOR_ID)}')
-    bot.send_message(call.from_user.id, f'Вы вышли из диалога\n\nНажмите /start - для входа в меню')
-    bot.send_message(OPERATOR_ID, f'Клиент завершил диалог с вами')
-    next_client = get_first_client_from_queue()
-    if next_client is None:
-        set_operator_state(b'free')
-        logger.info('Оператор свободен')
-        return
-    set_operator_state(b'busy')
-    logger.info(f'Запрос к оператору на диалог от клиента: {next_client}')
-    bot.send_message(OPERATOR_ID, f'💬Запрос на диалог!🧨\n\nОт пользователя:\nID: {next_client}\n'
-                     , reply_markup=keyboard_for_view_customer_information())
-
-
 def callback_operator_left_dialog(call, bot):
     bot.delete_message(call.message.chat.id, call.message.id)
-    client_id = get_first_client_and_delete_from_queue()
+    client_id = redis_cache.get_first_client_and_delete_from_queue()
     if client_id is None:
         bot.send_message(OPERATOR_ID, f'Вы уже выходили из этого диалога')
         return
@@ -162,15 +133,13 @@ def callback_operator_left_dialog(call, bot):
     logger.info(
         f'Состояние клиента - {bot.get_state(client_id, client_id)}, оператора - {bot.get_state(OPERATOR_ID, OPERATOR_ID)}')
     bot.send_message(OPERATOR_ID, f'Вы вышли из диалога!')
-    bot.send_message(client_id, f'Оператор завершил диалог с вами',
-                     reply_markup=keyboard_enter_menu_for_clients())
-    next_client = get_first_client_from_queue()
+    next_client = redis_cache.get_first_client_from_queue()
     if next_client is None:
-        set_operator_state(b'free')
+        redis_cache.set_operator_state(b'free')
         logger.info(f'Запросов в очереди нет, статус оператора перевод в "свободен" (free)')
         return
     logger.info(f'Запрос к оператору на диалог от клиента: {next_client}')
-    logger.info(f'Есть запросы в очереди, статус оператора перевод в "занят" (busy)')
-    set_operator_state(b'busy')
+    logger.info(f'Есть запросы в очереди, статус оператора переведен в "занят" (busy)')
+    redis_cache.set_operator_state(b'busy')
     bot.send_message(OPERATOR_ID, f'💬Запрос на диалог!🧨\n\nОт пользователя:\nID: {next_client}\n'
                      , reply_markup=keyboard_for_view_customer_information(next_client))

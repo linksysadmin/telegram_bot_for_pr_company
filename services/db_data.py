@@ -1,12 +1,15 @@
 import json
 import logging
 
+import redis
 from mysql import connector
 
-from config import REDIS
 from db import fetch_all, execute
+from services.redis_db import redis_cache
 
 logger = logging.getLogger(__name__)
+
+REDIS = redis.Redis(host='localhost', port=6379, db=0)
 
 
 def get_user_data_from_db(user_id: int) -> dict:
@@ -36,27 +39,26 @@ def get_users_data_from_db(user_ids: list) -> list | None:
 
 
 def get_data_questions() -> list[tuple]:
-    data_briefings = REDIS.get('data_questions:all')
+    data_briefings = redis_cache.get_data_questions()
     if data_briefings is not None:
         return json.loads(data_briefings)
     data_briefings = fetch_all(sql='SELECT * FROM questions')
-    REDIS.set('data_questions:all', json.dumps(data_briefings))
+    redis_cache.set_data_questions(data_briefings)
     return data_briefings
 
 
 def get_directories() -> list:
-    directories = REDIS.get('directories:all')
+    directories = redis_cache.get_directories()
     if directories is not None:
         return json.loads(directories)
     directories = fetch_all(sql='SELECT DISTINCT direction FROM questions')
     list_of_directories = [i[0] for i in directories]
-    REDIS.set('directories:all', json.dumps(list_of_directories))
-    REDIS.close()
+    redis_cache.set_directories(list_of_directories)
     return list_of_directories
 
 
 def get_sub_directions(direction: str):
-    sub_directions = REDIS.get(f'sub_directions:{direction}')
+    sub_directions = redis_cache.get_sub_directions(direction)
     if sub_directions is not None:
         return json.loads(sub_directions)
     sub_directions = fetch_all(sql='SELECT DISTINCT sub_direction FROM questions WHERE direction = %s',
@@ -65,8 +67,7 @@ def get_sub_directions(direction: str):
     if sub_directions[0][0] is None:
         return False
     list_of_sub_directions = [i[0] for i in sub_directions]
-    REDIS.set(f'sub_directions:{direction}', json.dumps(list_of_sub_directions))
-    REDIS.close()
+    redis_cache.set_sub_directions(direction, sub_directions)
     return list_of_sub_directions
 
 
@@ -134,28 +135,26 @@ def get_sections_from_db(direction, sub_direction=None):
 
 
 def get_sections_by_direction(direction):
-    sections = REDIS.get(f'sections_of_{direction}')
+    sections = redis_cache.get_sections_by_direction(direction)
     if sections is not None:
         return json.loads(sections)
     sections = fetch_all(
         sql='SELECT DISTINCT section_name FROM questions WHERE direction = %s AND sub_direction IS NULL',
         params=(direction,))
     list_of_sections = [i[0] for i in sections]
-    REDIS.set(f'sections_of_{direction}', json.dumps(list_of_sections))
-    REDIS.close()
+    redis_cache.set_sections_by_direction(direction, list_of_sections)
     return list_of_sections
 
 
 def get_sections_by_direction_and_sub_direction(direction, sub_direction):
-    sections = REDIS.get(f'sections_of_{direction}_{sub_direction}')
+    sections = redis_cache.get_sections_by_direction_and_sub_direction(direction, sub_direction)
     if sections is not None:
         return json.loads(sections)
     sections = fetch_all(
         sql='SELECT DISTINCT section_name FROM questions WHERE direction = %s AND sub_direction = %s',
         params=(direction, sub_direction))
     list_of_sections = [i[0] for i in sections]
-    REDIS.set(f'sections_of_{direction}_{sub_direction}', json.dumps(list_of_sections))
-    REDIS.close()
+    redis_cache.set_sections_by_direction_and_sub_direction(direction, sub_direction, list_of_sections)
     return list_of_sections
 
 
@@ -176,7 +175,7 @@ def get_question_and_answers_from_db(id_question: int) -> tuple:
     all = fetch_all(sql='SELECT question_text, answer FROM questions WHERE id = %s', params=(id_question,))
     question = [i[0] for i in all][0]
     try:
-        answers = [i[1].split(', ') for i in all][0]
+        answers = [i[1].split('| ') for i in all][0]
     except AttributeError:
         answers = []
     return question, answers

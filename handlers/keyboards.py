@@ -5,7 +5,7 @@ from telebot import types
 from services.db_data import get_directories, \
     get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers, get_sub_directions, \
     get_users_data_from_db
-from services.redis_db import add_keyboard_for_questions_in_redis, set_max_question_id_in_redis
+from services.redis_db import redis_cache
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ def keyboard_for_sub_direction(path):
 
 
 def keyboard_for_questions(user_id: int, path: str):
-    add_keyboard_for_questions_in_redis(user_id, path)
+    redis_cache.add_keyboard_for_questions(user_id, path)
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     list_of_questions = None
     buttons = []
@@ -107,7 +107,7 @@ def keyboard_for_questions(user_id: int, path: str):
             buttons.append(types.InlineKeyboardButton(text=f'✅ {i[1]}', callback_data=f'question_{i[0]}'))
         else:
             buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {i[1]}', callback_data=f'question_{i[0]}'))
-    set_max_question_id_in_redis(user_id, list_of_questions[-1][0])
+    redis_cache.set_max_question_id(user_id, list_of_questions[-1][0])
     button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
     for row in button_rows:
         keyboard.row(*row)
@@ -134,13 +134,6 @@ def keyboard_for_change_answer():
     cancel = types.InlineKeyboardButton(text='К вопросам', callback_data='back_to_questions')
     menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
     keyboard.add(change, cancel, menu)
-    return keyboard
-
-
-def keyboard_for_delete_dialogue():
-    keyboard = types.InlineKeyboardMarkup(row_width=True)
-    key1 = types.InlineKeyboardButton(text='❌Выйти из диалога', callback_data='cancel_from_dialog')
-    keyboard.add(key1)
     return keyboard
 
 
@@ -289,7 +282,6 @@ def keyboard_with_client_files(dict_of_path_files):
         keyboard.row(cancel, upload_file)
         return keyboard
     else:
-        # client_id = dict_of_path_files[0].split('/')[-2]
         for key, value in dict_of_path_files.items():
             filename = value.split('/')[-1]
             keyboard.add(types.InlineKeyboardButton(text=f'{filename}', callback_data=f'get|file|{key}'))
