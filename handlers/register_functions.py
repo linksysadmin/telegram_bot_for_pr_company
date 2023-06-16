@@ -178,7 +178,7 @@ def registration_menu_navigation(bot):
     bot.register_callback_query_handler(func=lambda callback: callback.data == "cancel_to_directions",
                                         callback=callback_cancel_to_directions, pass_bot=True)
 
-    bot.register_callback_query_handler(func=lambda callback: "client|info_" in callback.data,
+    bot.register_callback_query_handler(func=lambda callback: "client|info|" in callback.data,
                                         callback=callback_client_info, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: "enter_into_a_dialog|" in callback.data,
                                         callback=callback_enter_into_a_dialog, pass_bot=True)
@@ -204,13 +204,13 @@ def registration_menu_navigation(bot):
 
     bot.register_callback_query_handler(func=lambda callback: callback.data == 'upload_file_in_dialogue',
                                         callback=operator.callback_upload_file_in_dialogue, pass_bot=True)
-    bot.register_callback_query_handler(func=lambda callback: "question_" in callback.data,
+    bot.register_callback_query_handler(func=lambda callback: "question|" in callback.data,
                                         callback=callback_for_questions, pass_bot=True,
                                         check_user_registration=True)
-    bot.register_callback_query_handler(func=lambda callback: "question_" in callback.data,
+    bot.register_callback_query_handler(func=lambda callback: "question|" in callback.data,
                                         callback=callback_for_registration, pass_bot=True,
                                         check_user_registration=False)
-    bot.register_callback_query_handler(func=lambda callback: 'tex_' in callback.data,
+    bot.register_callback_query_handler(func=lambda callback: 'tex|' in callback.data,
                                         callback=documents.callback_for_registration_technical_exercise,
                                         pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == 'cancel_to_enter_menu_for_operator',
@@ -221,7 +221,7 @@ def registration_menu_navigation(bot):
     bot.register_callback_query_handler(func=lambda callback: callback.data == 'cancel_to_enter_menu_in_dialogue',
                                         callback=operator.callback_cancel_to_enter_menu_in_dialogue,
                                         pass_bot=True)
-    bot.register_callback_query_handler(func=lambda callback: 'queue_' in callback.data,
+    bot.register_callback_query_handler(func=lambda callback: 'queue|' in callback.data,
                                         callback=operator.callback_queue, pass_bot=True)
 
     bot.register_callback_query_handler(func=lambda callback: callback.data == 'requests',
@@ -274,7 +274,7 @@ def registration_menu_navigation(bot):
                                         callback=clients.callback_for_grade, pass_bot=True)
 
 
-def start_registration(bot):
+def registration_all_functions_for_telegram_bot(bot):
     registration_filters(bot)
     registration_commands(bot)
     registration_file_handling(bot)

@@ -5,21 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="408f61a6-9975-4ccc-b2f3-90f02b4ce47f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/services/string_parser.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/kwork_telegram_bot_for_KP.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kwork_telegram_bot_for_KP.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/clients.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/clients.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/commands.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/dialog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/documents.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/documents.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/games.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/games.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/get_info.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/get_info.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/keyboards.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/operator.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/operator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/register_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/register_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/text_messages.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/text_messages.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/db_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/db_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/files.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/files.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/files.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/file_handler.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/redis_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/redis_db.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -130,7 +128,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="files" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="file_handler" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="kwork_telegram_bot_for_KP" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -142,7 +140,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/services/files.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/services/file_handler.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -206,16 +204,16 @@
     </configuration>
     <list>
       <item itemvalue="Python.main" />
+      <item itemvalue="Python.file_handler" />
       <item itemvalue="Python.db_data" />
       <item itemvalue="Python.delete" />
-      <item itemvalue="Python.files" />
       <item itemvalue="Python.redis_db" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.redis_db" />
-        <item itemvalue="Python.files" />
         <item itemvalue="Python.db_data" />
+        <item itemvalue="Python.redis_db" />
+        <item itemvalue="Python.file_handler" />
         <item itemvalue="Python.delete" />
       </list>
     </recent_temporary>

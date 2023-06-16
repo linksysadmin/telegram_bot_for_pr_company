@@ -3,14 +3,14 @@ import logging
 from config import DIR_FOR_TECHNICAL_TASKS, DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_REPORTS, DIR_FOR_OTHER_FILES, \
     DIR_FOR_SAVE_DIALOGS
 from handlers.keyboards import keyboard_enter_menu_for_operator, keyboard_for_view_customer_information, \
-    keyboard_with_client_files_in_dialogue, \
     keyboard_for_menu_in_dialogue, keyboard_with_clients, keyboard_menu_directions_of_documents, \
     keyboard_with_client_files
 from handlers.documents import send_document_to_telegram
 from handlers.text_messages import TEXT_MESSAGES
-from services.files import find_user_documents, get_list_of_clients_dialogue, file_check
+from services.file_handler import find_user_documents, get_list_of_clients_dialogue, file_check
 from services.redis_db import redis_cache
 from services.states import MyStates
+from services.string_parser import CallDataParser
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,9 @@ def callback_tasks_for_operator(call, bot):
 
 
 def callback_settings_for_operator(call, bot):
-    pass
+    bot.edit_message_text(chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          text='Здесь вы можете изменить или добавить вопросы, секции и разделы')
 
 
 def callback_cancel_to_enter_menu_for_operator(call, bot):
@@ -52,7 +54,7 @@ def callback_cancel_to_enter_menu_for_operator(call, bot):
 
 
 def callback_get_dialogue_history(call, bot):
-    client_id = int(call.data.split('|')[1])
+    client_id = CallDataParser.get_client_id(call.data)
     path_to_dialogue_file = f'{DIR_FOR_SAVE_DIALOGS}/{client_id}/dialogue.log'
     if file_check(path=path_to_dialogue_file):
         send_document_to_telegram(bot, call.from_user.id, path_to_dialogue_file, caption='История диалога',
@@ -62,7 +64,7 @@ def callback_get_dialogue_history(call, bot):
 
 
 def callback_menu_directions_of_documents(call, bot):
-    client_id = int(call.data.split('|')[1])
+    client_id = CallDataParser.get_client_id(call.data)
     bot.edit_message_text(chat_id=call.message.chat.id,
                           message_id=call.message.message_id, text='Выберите раздел',
                           reply_markup=keyboard_menu_directions_of_documents(client_id))
@@ -80,7 +82,7 @@ def show_client_files_in_dialogue(call, bot, dir_path, client_id):
         redis_cache.save_dict_of_path_for_download_file(client_id, dict_path_to_files)
         text = 'Выберите какой файл вы хотите получить:'
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text,
-                          reply_markup=keyboard_with_client_files_in_dialogue(dict_path_to_files))
+                          reply_markup=keyboard_with_client_files(dict_path_to_files, in_dialogue=True))
 
 
 def callback_technical_tasks_for_operator_in_dialogue(call, bot):
@@ -118,22 +120,22 @@ def show_client_files(call, bot, dir_path, client_id):
 
 
 def callback_client_technical_tasks_for_operator(call, bot):
-    client_id = call.data.split('|')[-1]
+    client_id = CallDataParser.get_client_id(call.data)
     show_client_files(call, bot, DIR_FOR_TECHNICAL_TASKS, client_id)
 
 
 def callback_client_commercial_offers_for_operator(call, bot):
-    client_id = call.data.split('|')[-1]
+    client_id = CallDataParser.get_client_id(call.data)
     show_client_files(call, bot, DIR_FOR_COMMERCIAL_OFFERS, client_id)
 
 
 def callback_client_reports_for_operator(call, bot):
-    client_id = call.data.split('|')[-1]
+    client_id = CallDataParser.get_client_id(call.data)
     show_client_files(call, bot, DIR_FOR_REPORTS, client_id)
 
 
 def callback_client_other_documents_for_operator(call, bot):
-    client_id = call.data.split('|')[-1]
+    client_id = CallDataParser.get_client_id(call.data)
     show_client_files(call, bot, DIR_FOR_OTHER_FILES, client_id)
 
 
@@ -174,7 +176,7 @@ def callback_upload_file(call, bot):
 
 
 def callback_queue(call, bot):
-    client_id = call.data.split('_')[1]
+    client_id = CallDataParser.get_client_id(call.data)
     redis_cache.move_client_to_first_place_in_queue(client_id)
     bot.send_message(call.message.chat.id, 'Вступить в диалог с клиентом ?',
                      reply_markup=keyboard_for_view_customer_information(client_id))

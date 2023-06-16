@@ -10,6 +10,17 @@ class RedisCache:
     def __init__(self, host='localhost', port=6379, db=0):
         self.redis = redis.Redis(host=host, port=port, db=db)
 
+    def get_user_data(self, user_id: int) -> dict:
+        user_data = self.redis.get(f'user_data:{user_id}')
+        if user_data:
+            return json.loads(user_data)  # type: ignore
+        else:
+            return {}
+
+    def set_user_data(self, user_id: int, user_data: dict) -> None:
+        user_data_str = json.dumps(user_data)
+        self.redis.set(f'user_data:{user_id}', user_data_str)
+
     def get_queue_of_clients(self):
         list_of_binary = self.redis.lrange('queue', 0, -1)
         if not list_of_binary:
@@ -77,7 +88,7 @@ class RedisCache:
     def set_max_question_id(self, user_id: int, number):
         self.redis.set(f'max_questions|{user_id}', number)
 
-    def get_max_question_id(self, user_id: int):
+    def get_max_question_id(self, user_id: int) -> int:
         return int(self.redis.get(f'max_questions|{user_id}'))
 
     def set_directories(self, directories: list):
@@ -85,9 +96,6 @@ class RedisCache:
 
     def get_directories(self) -> list:
         return self.redis.get('directories:all')
-
-    def set_sub_directions(self, direction, sub_directions: list):
-        self.redis.set(f'sub_directions:{direction}', json.dumps(sub_directions))
 
     def get_sections_by_direction(self, direction):
         return self.redis.get(f'sections_of_{direction}')
@@ -103,6 +111,9 @@ class RedisCache:
 
     def get_sub_directions(self, direction):
         return self.redis.get(f'sub_directions:{direction}')
+
+    def set_sub_directions(self, direction, sub_directions):
+        self.redis.set(f'sub_directions:{direction}', json.dumps(sub_directions))
 
     def set_data_questions(self, data_briefings):
         self.redis.set('data_questions:all', json.dumps(data_briefings))
@@ -123,7 +134,7 @@ class RedisCache:
     def set_question_id(self, user: int, question_id: int):
         self.redis.set(f'question_id_for_user:{user}', question_id)
 
-    def get_question_id(self, user: int):
+    def get_question_id(self, user: int) -> int:
         return int(self.redis.get(f'question_id_for_user:{user}'))
 
     def set_next_question_callback(self, user: int, callback: str):
@@ -132,11 +143,9 @@ class RedisCache:
     def get_next_question_callback(self, user: int):
         return json.loads(self.redis.get(f'next_question_callback_in_redis:{user}'))
 
-    # Устанавливаем состояние оператора
     def set_operator_state(self, state):
         self.redis.set('operator_state', state)
 
-    # Получаем состояние оператора
     def get_operator_state(self, ):
         return self.redis.get('operator_state')
 

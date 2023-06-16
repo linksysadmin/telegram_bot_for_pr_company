@@ -8,9 +8,10 @@ from handlers.keyboards import remove_keyboard, \
 from handlers.text_messages import TEXT_MESSAGES
 from services.db_data import add_clients_data_to_db, get_question_and_answers_from_db, add_user_answers_to_db, \
     get_user_answer
-from services.files import save_file
+from services.file_handler import save_file
 from services.redis_db import redis_cache
 from services.states import MyStates
+from services.string_parser import CallDataParser
 
 logger = logging.getLogger(__name__)
 
@@ -81,11 +82,10 @@ def get_answer_from_user(message, bot):
 
 def next_question(message, bot):
     callback_for_next_question = redis_cache.get_next_question_callback(message.from_user.id)
-    next_question_id = int(callback_for_next_question.split('_')[1])
+    next_question_id = CallDataParser.get_question_id(callback_for_next_question)
     max_question_id = redis_cache.get_max_question_id(message.from_user.id)
-
     if next_question_id <= max_question_id:
-        next_callback = f"{callback_for_next_question.split('_')[0]}_{int(callback_for_next_question.split('_')[1]) + 1}"
+        next_callback = f"question|{next_question_id + 1}"
         redis_cache.set_question_id(user=message.from_user.id, question_id=next_question_id)
         redis_cache.set_next_question_callback(user=message.from_user.id, callback=next_callback)
     elif next_question_id > max_question_id:
@@ -94,8 +94,7 @@ def next_question(message, bot):
         return
     question, answers = get_question_and_answers_from_db(next_question_id)
     user_answer = get_user_answer(message.from_user.id, next_question_id)
-    if bool(user_answer):
-        user_answer = user_answer[0][0]
+    if user_answer:
         bot.send_message(message.chat.id, f'❓{question}?\n\nВаше ответ:{user_answer}',
                          reply_markup=keyboard_for_answer(answers))
         return

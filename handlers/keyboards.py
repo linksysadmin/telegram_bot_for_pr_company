@@ -6,6 +6,7 @@ from services.db_data import get_directories, \
     get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers, get_sub_directions, \
     get_users_data_from_db
 from services.redis_db import redis_cache
+from services.string_parser import CallDataParser
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ def keyboard_for_files(dict_path_to_files):
         return keyboard
     else:
         for key, value in dict_path_to_files.items():
-            filename = value.split('/')[-1]
+            filename = CallDataParser.get_file_name(value)
             keyboard.add(types.InlineKeyboardButton(text=f'{filename}', callback_data=f'get|file|{key}'))
         keyboard.row(cancel, main_menu)
         return keyboard
@@ -57,8 +58,8 @@ def keyboard_for_files(dict_path_to_files):
 def keyboard_for_briefings():
     keyboard = types.InlineKeyboardMarkup()
     list_of_directions = get_directories()
-    for dir in list_of_directions:
-        keyboard.add(types.InlineKeyboardButton(text=dir, callback_data=dir))
+    for dir_ in list_of_directions:
+        keyboard.add(types.InlineKeyboardButton(text=dir_, callback_data=dir_))
     cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_from_inline_menu')
     keyboard.add(cancel)
     return keyboard
@@ -83,7 +84,8 @@ def keyboard_for_direction(direction):
 
 def keyboard_for_sub_direction(path):
     keyboard = types.InlineKeyboardMarkup(row_width=1)
-    list_of_subcategories = get_sections_from_db(path.split('|')[0], path.split('|')[1])
+    dir_, sub_dir = CallDataParser.get_dir_and_sub_dir(path)
+    list_of_subcategories = get_sections_from_db(dir_, sub_dir)
     for sub_dir in list_of_subcategories:
         keyboard.add(types.InlineKeyboardButton(text=sub_dir, callback_data=f'{path}|{sub_dir}'))
     cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_directions')
@@ -94,24 +96,21 @@ def keyboard_for_sub_direction(path):
 
 def keyboard_for_questions(user_id: int, path: str):
     redis_cache.add_keyboard_for_questions(user_id, path)
+    dir_, sub_dir, section = CallDataParser.get_directory_sub_direction_section(path)
     keyboard = types.InlineKeyboardMarkup(row_width=1)
-    list_of_questions = None
     buttons = []
     list_of_questions_id_from_user_answers = get_questions_id_from_user_answers(user_id)
-    if len(path.split('|')) == 2:  # если мы перешли с dir|sec
-        list_of_questions = get_questions_from_db(path.split('|')[0], path.split('|')[1])
-    if len(path.split('|')) == 3:  # если мы перешли с dir|sub|sec
-        list_of_questions = get_questions_from_db(path.split('|')[0], path.split('|')[2], path.split('|')[1])
-    for i in list_of_questions:
-        if i[0] in list_of_questions_id_from_user_answers:
-            buttons.append(types.InlineKeyboardButton(text=f'✅ {i[1]}', callback_data=f'question_{i[0]}'))
+    list_of_questions = get_questions_from_db(dir_, section, sub_dir)
+    for question in list_of_questions:
+        if question[0] in list_of_questions_id_from_user_answers:
+            buttons.append(types.InlineKeyboardButton(text=f'✅ {question[1]}', callback_data=f'question|{question[0]}'))
         else:
-            buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {i[1]}', callback_data=f'question_{i[0]}'))
+            buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {question[1]}', callback_data=f'question|{question[0]}'))
     redis_cache.set_max_question_id(user_id, list_of_questions[-1][0])
     button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
     for row in button_rows:
         keyboard.row(*row)
-    technical_exercise = types.InlineKeyboardButton(text='Сформировать ТЗ', callback_data=f'tex_{path}')
+    technical_exercise = types.InlineKeyboardButton(text='Сформировать ТЗ', callback_data=f'tex|{path}')
     cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_directions')
     main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_from_inline_menu')
     keyboard.add(technical_exercise, cancel, main_menu)
@@ -227,7 +226,7 @@ def keyboard_with_clients(clients, callback_data_prefix):
     users_data = get_users_data_from_db(clients)
     for client in users_data:
         keyboard.add(types.InlineKeyboardButton(text=f'❗️{client["name"]}|{client["company"]}',
-                                                callback_data=f'{callback_data_prefix}_{client["id"]}'))
+                                                callback_data=f'{callback_data_prefix}|{client["id"]}'))
     keyboard.add(cancel)
     return keyboard
 
@@ -259,25 +258,15 @@ def keyboard_for_menu_in_dialogue():
     return keyboard
 
 
-def keyboard_with_client_files_in_dialogue(dict_of_path_files):
+def keyboard_with_client_files(dict_of_path_files, in_dialogue=None):
     keyboard = types.InlineKeyboardMarkup(row_width=True)
-    upload_file = types.InlineKeyboardButton(text='Загрузить файл', callback_data='upload_file_in_dialogue')
-    cancel = types.InlineKeyboardButton(text='Назад', callback_data='cancel_to_enter_menu_in_dialogue')
-    if dict_of_path_files is None:
-        keyboard.row(cancel, upload_file)
-        return keyboard
-    else:
-        for key, value in dict_of_path_files.items():
-            filename = value.split('/')[-1]
-            keyboard.add(types.InlineKeyboardButton(text=f'{filename}', callback_data=f'get|file|{key}'))
-        keyboard.row(cancel, upload_file)
-        return keyboard
-
-
-def keyboard_with_client_files(dict_of_path_files):
-    keyboard = types.InlineKeyboardMarkup(row_width=True)
-    upload_file = types.InlineKeyboardButton(text='Загрузить файл', callback_data='upload_file')
-    cancel = types.InlineKeyboardButton(text='Главное меню', callback_data='cancel_to_enter_menu_for_operator')
+    callback_data_for_upload_file = 'upload_file'
+    callback_data_for_cancel = 'cancel_to_enter_menu_for_operator'
+    if in_dialogue:
+        callback_data_for_upload_file = 'upload_file_in_dialogue'
+        callback_data_for_cancel = 'cancel_to_enter_menu_in_dialogue'
+    upload_file = types.InlineKeyboardButton(text='Загрузить файл', callback_data=callback_data_for_upload_file)
+    cancel = types.InlineKeyboardButton(text='Главное меню', callback_data=callback_data_for_cancel)
     if dict_of_path_files is None:
         keyboard.row(cancel, upload_file)
         return keyboard

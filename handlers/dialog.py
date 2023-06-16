@@ -3,8 +3,10 @@ import os
 
 from config import OPERATOR_ID, DIR_FOR_SAVE_DIALOGS
 from handlers.keyboards import keyboard_for_menu_in_dialogue, keyboard_for_view_customer_information
+from services.db_data import get_user_data_from_db
 from services.redis_db import redis_cache
 from services.states import MyStates
+from services.string_parser import CallDataParser
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +53,7 @@ def callback_instant_messaging_service(call, bot):
 
 def callback_enter_into_a_dialog(call, bot):
     operator = call.from_user.id
-    client_id = int(call.data.split('|')[1])
+    client_id = CallDataParser.get_client_id(call.data)
     redis_cache.move_client_to_first_place_in_queue(client_id)
     redis_cache.set_operator_state(b'busy')
     logger.info(f'Оператор вступил в диалог с клиентом {client_id}')
@@ -67,7 +69,7 @@ def callback_enter_into_a_dialog(call, bot):
 
 def callback_client_info(call, bot):
     operator = call.from_user.id
-    client_id = int(call.data.split('_')[1])
+    client_id = CallDataParser.get_client_id(call.data)
     bot.send_message(operator, 'Выберите действие',
                      reply_markup=keyboard_for_view_customer_information(client_id))
 
@@ -100,9 +102,13 @@ def send_photo_to_client(message, bot):
 
 def send_message_to_operator(message, bot):
     client_id = message.from_user.id
+    user_data = get_user_data_from_db(client_id)
     log_dialogue = dialogue_logging(client_id)
-    log_dialogue.info(f'Сообщение от клиента: {message.text}')
-    bot.send_message(OPERATOR_ID, f'💬Сообщение от клиента {client_id}: {message.text}',
+    log_dialogue.info(f'{user_data["company"]}|Сообщение от клиента {user_data["name"]}: {message.text}')
+    bot.send_message(OPERATOR_ID, f'Вы общаетесь с клиентом: {user_data["name"]}\n'
+                                  f'Компания: {user_data["company"]}\n'
+                                  f'Телефон: {user_data["phone"]}\n\n'
+                                  f'Сообщение:\n{message.text}',
                      reply_markup=keyboard_for_menu_in_dialogue())
 
 

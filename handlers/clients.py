@@ -8,11 +8,11 @@ from handlers.keyboards import keyboard_for_briefings, \
 from handlers.documents import send_document_to_telegram
 from services.db_data import get_data_questions, get_question_and_answers_from_db, \
     get_user_answer, get_user_data_from_db, get_directories
-from services.files import find_user_documents
+from services.file_handler import find_user_documents
 from services.redis_db import redis_cache
 from services.states import MyStates
 from handlers.text_messages import TEXT_MESSAGES
-
+from services.string_parser import CallDataParser
 
 logger = logging.getLogger(__name__)
 
@@ -144,15 +144,14 @@ def callback_for_change_answer(call, bot):
 
 
 def callback_for_questions(call, bot):
-    question_id = call.data.split('_')[1]
-    if int(question_id) <= redis_cache.get_max_question_id(call.from_user.id):
-        next_callback = f"{call.data.split('_')[0]}_{int(call.data.split('_')[1]) + 1}"
+    question_id = CallDataParser.get_question_id(call.data)
+    if question_id <= redis_cache.get_max_question_id(call.from_user.id):
+        next_callback = f"question|{question_id + 1}"
         redis_cache.set_question_id(user=call.from_user.id, question_id=question_id)
         redis_cache.set_next_question_callback(user=call.from_user.id, callback=next_callback)
     question, answers = get_question_and_answers_from_db(question_id)
     user_answer = get_user_answer(call.from_user.id, question_id)
-    if bool(user_answer):
-        user_answer = user_answer[0][0]
+    if user_answer:
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text=f'❓{question}?\n\nВаш ответ:{user_answer}',
                               reply_markup=keyboard_for_change_answer())
@@ -164,7 +163,7 @@ def callback_for_questions(call, bot):
 
 
 def callback_for_registration(call, bot):
-    question_id = call.data.split('_')[1]
+    question_id = CallDataParser.get_question_id(call.data)
     redis_cache.set_question_id(user=call.from_user.id, question_id=question_id)
     bot.set_state(call.from_user.id, MyStates.name, call.from_user.id)
     bot.add_data(call.from_user.id, call.message.chat.id, id_question=question_id)

@@ -1,7 +1,6 @@
 import json
 import logging
 
-import redis
 from mysql import connector
 
 from db import fetch_all, execute
@@ -9,15 +8,28 @@ from services.redis_db import redis_cache
 
 logger = logging.getLogger(__name__)
 
-REDIS = redis.Redis(host='localhost', port=6379, db=0)
-
 
 def get_user_data_from_db(user_id: int) -> dict:
-    data = fetch_all(sql='SELECT * FROM clients WHERE id = %s',
-                     params=(user_id,))
-    return {'date_of_registration': data[0][0].strftime('%d-%m-%Y'), 'id': data[0][1], 'name': data[0][2],
-            'tg_username': data[0][3], 'phone': data[0][4], 'company': data[0][5], 'website': data[0][6],
-            'documents': data[0][7]}
+    try:
+        user_data = redis_cache.get_user_data(user_id)
+        if user_data:
+            return user_data
+        data = fetch_all(sql='SELECT * FROM clients WHERE id = %s',
+                         params=(user_id,))
+        dict_user_data = {
+            'date_of_registration': data[0][0].strftime('%d-%m-%Y'),
+            'id': data[0][1],
+            'name': data[0][2],
+            'tg_username': data[0][3],
+            'phone': data[0][4],
+            'company': data[0][5],
+            'website': data[0][6],
+            'documents': data[0][7]
+        }
+        redis_cache.set_user_data(user_id, dict_user_data)
+        return dict_user_data
+    except IndexError:
+        logger.error('Пользователь не существует в базе данных')
 
 
 def get_users_data_from_db(user_ids: list) -> list | None:
@@ -40,7 +52,7 @@ def get_users_data_from_db(user_ids: list) -> list | None:
 
 def get_data_questions() -> list[tuple]:
     data_briefings = redis_cache.get_data_questions()
-    if data_briefings is not None:
+    if data_briefings:
         return json.loads(data_briefings)
     data_briefings = fetch_all(sql='SELECT * FROM questions')
     redis_cache.set_data_questions(data_briefings)
@@ -49,7 +61,7 @@ def get_data_questions() -> list[tuple]:
 
 def get_directories() -> list:
     directories = redis_cache.get_directories()
-    if directories is not None:
+    if directories:
         return json.loads(directories)
     directories = fetch_all(sql='SELECT DISTINCT direction FROM questions')
     list_of_directories = [i[0] for i in directories]
@@ -59,15 +71,14 @@ def get_directories() -> list:
 
 def get_sub_directions(direction: str):
     sub_directions = redis_cache.get_sub_directions(direction)
-    if sub_directions is not None:
+    if sub_directions:
         return json.loads(sub_directions)
     sub_directions = fetch_all(sql='SELECT DISTINCT sub_direction FROM questions WHERE direction = %s',
                                params=(direction,))
-
     if sub_directions[0][0] is None:
         return False
-    list_of_sub_directions = [i[0] for i in sub_directions]
-    redis_cache.set_sub_directions(direction, sub_directions)
+    list_of_sub_directions = [sub_dir[0] for sub_dir in sub_directions]
+    redis_cache.set_sub_directions(direction, list_of_sub_directions)
     return list_of_sub_directions
 
 
@@ -80,11 +91,15 @@ def check_user_in_database(user_id) -> bool:
 
 
 def get_user_answer(user_id: int, question_id: int):
-    result_from_db = fetch_all(
+    result = fetch_all(
         sql='''SELECT user_response FROM clients_briefings WHERE client_id = %s AND question_id = %s;''',
         params=(user_id, question_id)
     )
-    return result_from_db
+    try:
+        answer = result[0][0]
+        return answer
+    except IndexError:
+        return None
 
 
 def get_user_list_of_questions_informal_and_answers(user_id: int, directory: str, section: str):
@@ -136,7 +151,7 @@ def get_sections_from_db(direction, sub_direction=None):
 
 def get_sections_by_direction(direction):
     sections = redis_cache.get_sections_by_direction(direction)
-    if sections is not None:
+    if sections:
         return json.loads(sections)
     sections = fetch_all(
         sql='SELECT DISTINCT section_name FROM questions WHERE direction = %s AND sub_direction IS NULL',
@@ -148,7 +163,7 @@ def get_sections_by_direction(direction):
 
 def get_sections_by_direction_and_sub_direction(direction, sub_direction):
     sections = redis_cache.get_sections_by_direction_and_sub_direction(direction, sub_direction)
-    if sections is not None:
+    if sections:
         return json.loads(sections)
     sections = fetch_all(
         sql='SELECT DISTINCT section_name FROM questions WHERE direction = %s AND sub_direction = %s',
@@ -172,10 +187,10 @@ def get_questions_from_db(direction, section, sub_direction=None):
 
 
 def get_question_and_answers_from_db(id_question: int) -> tuple:
-    all = fetch_all(sql='SELECT question_text, answer FROM questions WHERE id = %s', params=(id_question,))
-    question = [i[0] for i in all][0]
+    all_question_and_answers = fetch_all(sql='SELECT question_text, answer FROM questions WHERE id = %s', params=(id_question,))
+    question = [i[0] for i in all_question_and_answers][0]
     try:
-        answers = [i[1].split('| ') for i in all][0]
+        answers = [i[1].split('| ') for i in all_question_and_answers][0]
     except AttributeError:
         answers = []
     return question, answers
