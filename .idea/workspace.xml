@@ -5,19 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="408f61a6-9975-4ccc-b2f3-90f02b4ce47f" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/static/img/interface/photo_23.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/create_db.sql" beforeDir="false" afterPath="$PROJECT_DIR$/create_db.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/dialog.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/documents.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/documents.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/keyboards.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/operator.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/operator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/text_messages.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/text_messages.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/db_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/db_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/file_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/file_handler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/string_parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/string_parser.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
