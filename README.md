@@ -63,7 +63,7 @@
 <img src="static/img/interface/photo_3.jpg" width=350px height=150px>
 <p>Так выглядит меню после того как вы ответили на некоторые вопросы. Если вдруг вы захотите изменить ответ на
 определенный вопрос, нажмите на него и выберите "Изменить ответ"</p>
-<img src="static/img/interface/photo_4.jpg" width=330px height=400px>
+<img src="static/img/interface/photo_4.jpg" width=260px height=450px>
 </div>
 
 <div style="text-align: center;">
