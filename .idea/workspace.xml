@@ -5,20 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="408f61a6-9975-4ccc-b2f3-90f02b4ce47f" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/services/string_parser.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/kwork_telegram_bot_for_KP.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kwork_telegram_bot_for_KP.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/clients.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/clients.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/create_db.sql" beforeDir="false" afterPath="$PROJECT_DIR$/create_db.sql" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/dialog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/documents.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/documents.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/get_info.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/get_info.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/keyboards.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/operator.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/operator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/register_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/register_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/text_messages.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/text_messages.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/db_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/db_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/files.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/file_handler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/redis_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/redis_db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/file_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/file_handler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/string_parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/string_parser.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,7 +56,7 @@
     &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/inside/PycharmProjects/kwork_telegram_bot_for_KP&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/inside/PycharmProjects/kwork_telegram_bot_for_KP/static/img/interface&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
 }</component>
@@ -71,11 +70,11 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/static/img/interface" />
       <recent name="$PROJECT_DIR$/static/documents/commercial_offers" />
       <recent name="$PROJECT_DIR$/static/documents/templates" />
       <recent name="$PROJECT_DIR$/static/documents/technical_tasks" />
       <recent name="$PROJECT_DIR$/documents/templates" />
-      <recent name="$PROJECT_DIR$/document_templates" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/static/img/games" />
@@ -211,9 +210,9 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.file_handler" />
         <item itemvalue="Python.db_data" />
         <item itemvalue="Python.redis_db" />
-        <item itemvalue="Python.file_handler" />
         <item itemvalue="Python.delete" />
       </list>
     </recent_temporary>

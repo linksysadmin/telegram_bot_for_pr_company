@@ -3,7 +3,7 @@ from typing import Tuple, Union
 
 class CallDataParser:
     @staticmethod
-    def get_directory_sub_direction_section(call_data: str) -> Tuple[str, Union[str, None], str]:
+    def get_directory_sub_direction_section(call_data: str) -> Tuple[str, Union[str, None], str] | Tuple[str, str]:
         """
         Принимает строку из вызова call.data для inline-кнопок,
         возвращает название директории и поддиректории
@@ -17,8 +17,11 @@ class CallDataParser:
             return split_path[0], None, split_path[-1]
         elif len_string_path == 3:
             if split_path[0] == 'tex':
-                return split_path[1], None, split_path[2]
+                return split_path[-2], split_path[-1]
             return split_path[0], split_path[1], split_path[-1]
+        elif len_string_path == 4:
+            if split_path[0] == 'tex':
+                return split_path[1], split_path[-1]
 
     @staticmethod
     def get_dir_and_sub_dir(call_data: str) -> Tuple[str, str]:
@@ -51,9 +54,8 @@ class CallDataParser:
         :return: int - id вопроса
         """
         question_id = int(call_data.split('|')[-1])
-        return question_id\
-
-
+        return question_id \
+ \
     @staticmethod
     def get_key_for_path(call_data: str) -> str:
         """
@@ -88,4 +90,3 @@ class CallDataParser:
         """
         filename = path.split('/')[-1]
         return filename
-

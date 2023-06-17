@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Dict
 
 from mysql import connector
 
@@ -10,6 +11,24 @@ logger = logging.getLogger(__name__)
 
 
 def get_user_data_from_db(user_id: int) -> dict:
+    """
+    Функция принимает telegram_id пользователя
+    Args:
+        user_id:
+
+    Returns:
+        A dictionary with the following keys:
+        Field Name | Data Type | Description
+
+        | date_of_registration | str | In the format '%d-%m-%Y'. |
+        | id | int | The user ID. |
+        | name | str | The user name. |
+        | tg_username | str | The user Telegram username. |
+        | phone | str | The user phone number. |
+        | company | str | The user company name. |
+        | website | str | The user website URL. |
+        | documents | str | Have documents. |
+    """
     try:
         user_data = redis_cache.get_user_data(user_id)
         if user_data:
@@ -24,7 +43,8 @@ def get_user_data_from_db(user_id: int) -> dict:
             'phone': data[0][4],
             'company': data[0][5],
             'website': data[0][6],
-            'documents': data[0][7]
+            'documents': data[0][7],
+            'status': data[0][8],
         }
         redis_cache.set_user_data(user_id, dict_user_data)
         return dict_user_data
@@ -173,21 +193,23 @@ def get_sections_by_direction_and_sub_direction(direction, sub_direction):
     return list_of_sections
 
 
-def get_questions_from_db(direction, section, sub_direction=None):
+def get_questions_from_db(direction, section, sub_direction=None) -> Dict:
     if sub_direction is None:
-        questions = fetch_all(
+        list_of_questions = fetch_all(
             sql='SELECT DISTINCT id, question_number FROM questions WHERE direction = %s AND sub_direction IS NULL AND '
                 'section_name = %s',
             params=(direction, section))
     else:
-        questions = fetch_all(sql='SELECT id, question_number FROM questions WHERE direction = %s'
-                                  ' AND section_name = %s AND sub_direction = %s',
-                              params=(direction, section, sub_direction))
-    return questions
+        list_of_questions = fetch_all(sql='SELECT id, question_number FROM questions WHERE direction = %s'
+                                          ' AND section_name = %s AND sub_direction = %s',
+                                      params=(direction, section, sub_direction))
+    dict_of_questions = {question[0]: question[1] for question in list_of_questions}
+    return dict_of_questions
 
 
 def get_question_and_answers_from_db(id_question: int) -> tuple:
-    all_question_and_answers = fetch_all(sql='SELECT question_text, answer FROM questions WHERE id = %s', params=(id_question,))
+    all_question_and_answers = fetch_all(sql='SELECT question_text, answer FROM questions WHERE id = %s',
+                                         params=(id_question,))
     question = [i[0] for i in all_question_and_answers][0]
     try:
         answers = [i[1].split('| ') for i in all_question_and_answers][0]

@@ -28,14 +28,16 @@ def dialogue_logging(client_id):
 
 def callback_instant_messaging_service(call, bot):
     client_id = call.from_user.id
+    user_data = get_user_data_from_db(client_id)
     operator_state = redis_cache.get_operator_state()
     logger.info(f'Запрос от клиента {client_id} на диалог')
     match operator_state:
         case b'free' | None:
             redis_cache.set_operator_state(b'busy')
             logger.info(f'Перевод статуса оператора в "занят" (busy)')
-            bot.send_message(OPERATOR_ID, f'💬Запрос на диалог!🧨\n\nОт пользователя:\nID: {call.from_user.id}\n'
-                                          f'Имя: {call.from_user.first_name}',
+            bot.send_message(OPERATOR_ID, f'💬Запрос на диалог!🧨\n\nКлиент: {user_data["name"]}\n'
+                                          f'Компания: {user_data["company"]}\n'
+                                          f'Телефон: {user_data["phone"]}',
                              reply_markup=keyboard_for_view_customer_information(client_id))
         case _:
             logger.info(f'Оператор занят')
@@ -48,7 +50,13 @@ def callback_instant_messaging_service(call, bot):
             bot.send_message(call.message.chat.id,
                              'Вы уже в очереди подождите пожалуйста, пока оператор👨 ответит вам ‍💻😊')
             bot.send_message(OPERATOR_ID,
-                             'Не забывайте о клиенте) Он повторно запрашивает диалог с оператором')
+                             f'❗️Не забывайте о клиенте\n'
+                             f'Он повторно запрашивает диалог\n\n'
+                             f'Клиент: {user_data["name"]}\n'
+                             f'Компания: {user_data["company"]}\n'
+                             f'Телефон: {user_data["phone"]}\n\n'
+                             f'Меню(/start) -> Запросы'
+                             )
 
 
 def callback_enter_into_a_dialog(call, bot):

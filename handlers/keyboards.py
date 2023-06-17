@@ -100,13 +100,15 @@ def keyboard_for_questions(user_id: int, path: str):
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     buttons = []
     list_of_questions_id_from_user_answers = get_questions_id_from_user_answers(user_id)
-    list_of_questions = get_questions_from_db(dir_, section, sub_dir)
-    for question in list_of_questions:
-        if question[0] in list_of_questions_id_from_user_answers:
-            buttons.append(types.InlineKeyboardButton(text=f'✅ {question[1]}', callback_data=f'question|{question[0]}'))
+    dict_of_questions = get_questions_from_db(dir_, section, sub_dir)
+
+    for question_id, number_of_question in dict_of_questions.items():
+        if question_id in list_of_questions_id_from_user_answers:
+            buttons.append(types.InlineKeyboardButton(text=f'✅ {number_of_question}', callback_data=f'question|{question_id}'))
         else:
-            buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {question[1]}', callback_data=f'question|{question[0]}'))
-    redis_cache.set_max_question_id(user_id, list_of_questions[-1][0])
+            buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {number_of_question}', callback_data=f'question|{question_id}'))
+    max_question_id = list(dict_of_questions.keys())[-1]
+    redis_cache.set_max_question_id(user_id, max_question_id)
     button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
     for row in button_rows:
         keyboard.row(*row)

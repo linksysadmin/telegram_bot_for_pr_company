@@ -7,7 +7,8 @@ from handlers.keyboards import keyboard_enter_menu_for_operator, keyboard_for_vi
     keyboard_with_client_files
 from handlers.documents import send_document_to_telegram
 from handlers.text_messages import TEXT_MESSAGES
-from services.file_handler import find_user_documents, get_list_of_clients_dialogue, file_check
+from services.file_handler import find_user_documents, file_check, \
+    get_list_of_clients_dialogue_files
 from services.redis_db import redis_cache
 from services.states import MyStates
 from services.string_parser import CallDataParser
@@ -27,7 +28,7 @@ def callback_requests_for_operator(call, bot):
 
 
 def callback_clients_for_operator(call, bot):
-    list_of_clients = get_list_of_clients_dialogue()
+    list_of_clients = get_list_of_clients_dialogue_files()
     text = 'Выберите клиента:'
     callback_data_prefix = 'client|info'
     if not list_of_clients:
@@ -56,7 +57,7 @@ def callback_cancel_to_enter_menu_for_operator(call, bot):
 def callback_get_dialogue_history(call, bot):
     client_id = CallDataParser.get_client_id(call.data)
     path_to_dialogue_file = f'{DIR_FOR_SAVE_DIALOGS}/{client_id}/dialogue.log'
-    if file_check(path=path_to_dialogue_file):
+    if file_check(path_to_dialogue_file):
         send_document_to_telegram(bot, call.from_user.id, path_to_dialogue_file, caption='История диалога',
                                   visible_file_name='Диалог.log')
     else:

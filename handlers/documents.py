@@ -14,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 def callback_for_registration_technical_exercise(call, bot):
+    print(call.data)
     logger.info(f'callback_technical_exercise: пришел callback: {call.data}')
     client_id = call.from_user.id
-    directory, sub_dir, section = CallDataParser.get_directory_sub_direction_section(call.data)
+    directory, section = CallDataParser.get_directory_sub_direction_section(call.data)
     all_emoji = ['🎲', '🎯', '🏀', '⚽', '🎳', '🎰']
     bot.send_dice(client_id, emoji=random.choice(all_emoji), timeout=5)
     bot.send_chat_action(client_id, action="upload_document", timeout=3)

@@ -21,7 +21,8 @@ CREATE TABLE clients (
     phone VARCHAR(50),
     company TEXT,
     website TEXT,
-    documents BOOLEAN DEFAULT FALSE
+    documents BOOLEAN DEFAULT FALSE,
+    status VARCHAR(255) DEFAULT 'registered'
 );
 
 

@@ -22,7 +22,6 @@ formatter = colorlog.ColoredFormatter(
         'ERROR': 'red',
         'CRITICAL': 'red,bg_white',
     })
-
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
 logging.basicConfig(handlers=[console_handler], level=logging.INFO)

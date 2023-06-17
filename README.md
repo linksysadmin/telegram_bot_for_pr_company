@@ -1,285 +1,306 @@
-# Telegram Bot for PR company (Mr.Эйч)
+<div align="center" style="margin-top: 10%;">
+<img src="static/img/logo-e01df794.svg" width="50%">
+<h1 align="center">Бот Mr. Эйч</h1>
+</div>
 
+<h2 align="center">Телеграм-бот компании **Mr. Эйч** для автоматизации процесса оформления документов, 
+диалога с потенциальным клиентом и ведения документации </h2> 
 
-curl https://api.telegram.org/bot675567567:AAFenUQz3O2lDRпкууSZQPQiHYniYfDuc/setWebhook?url=https://1792-94-131-111-6.ngrok-free.app/675567567:AAFenUQz3O2lDRпкууSZQPQiHYniYfDuc/
+# Руководство использования 
 
-
-
-### Задать и удалить команды:
-
-    start = types.BotCommand('start', 'Меню')
-    test = types.BotCommand('test', 'Тест')
-    bot.set_my_commands([start, test])
-
-или 
-
-    bot.set_my_commands(
-        commands=[
-            telebot.types.BotCommand("command1", "command1 description"),
-            telebot.types.BotCommand("command2", "command2 description")
-        ],    
-    bot.delete_my_commands(scope=None, language_code=None)
-    # check command
-    cmd = bot.get_my_commands(scope=None, language_code=None)
-    print([c.to_json() for c in cmd])
-
-#### Создание топика 
-
-    bot.create_forum_topic(TELEGRAM_GROUP_CHAT_ID, name='Эйч|Брифинг|@Направление')
-    # отправляем сообщение с клавиатурой
-    bot.send_message(
-        chat_id=message.chat.id,
-        text=f'тема создана'
-    )
-
-    chat_id = TELEGRAM_GROUP_CHAT_ID
-    topic_text = 'Новый топик'
-    topic_message = bot.send_message(chat_id, topic_text)
-
-
-    print(chat_id[4:])
-    # получаем ссылку на топик
-    topic_link = f'https://t.me/c/{chat_id[4:]}/{topic_message.message_id - 1}'
-    print(topic_link, topic_message, sep='\n')
-    # отправляем ссылку на топик пользователю
-    bot.send_message(message.chat.id, topic_link)
-
-
-
-#### Диалог с оператором 
-
-
-    def callback_instant_messaging_service(call, bot):
-        # bot.delete_message(call.message.chat.id, call.message.id)
-        REDIS.set(f'client_id_for_dialogue', call.from_user.id)
-        bot.send_message(call.message.chat.id, 'Подождите пока оператор к вам присоединится...')
-        bot.send_message(OPERATOR_ID, f'💬Запрос на диалог!🧨\n\nОт пользователя:\nID: {call.from_user.id}\n'
-                                      f'Имя: {call.from_user.first_name}', reply_markup=keyboard_for_operator())
-        bot.set_state(call.message.chat.id, MyStates.request, call.from_user.id)
-        logger.info(f'Состояние пользователя - {bot.get_state(call.message.chat.id, call.from_user.id)}')
-    
-    
-    def callback_enter_into_a_dialog(call, bot):
-        try:
-            client_id = int(REDIS.get(f'client_id_for_dialogue'))
-            bot.set_state(client_id, MyStates.dialogue, client_id)
-            bot.set_state(call.message.chat.id, MyStates.client, call.from_user.id)
-            bot.delete_message(call.message.chat.id, call.message.id)
-            bot.send_message(client_id, 'Вы вступили в диалог с оператором\n', reply_markup=keyboard_for_delete_dialogue())
-            bot.send_message(call.message.chat.id, 'Вы вступили в диалог с клиентом\nНапишите ему:',
-                             reply_markup=keyboard_for_delete_dialogue())
-            logger.info(f'Состояние пользователя - {bot.get_state(call.message.chat.id, call.from_user.id)}')
-        except Exception as e:
-            logger.error(f'{e}')
-            not_dialogs(call.from_user.id, bot)
-    
-    
-    def send_request_to_operator(message, bot):
-        REDIS.set(f'client_id_for_dialogue', message.from_user.id)
-        bot.send_message(message.from_user.id, f'Подождите пожалуйста пока оператор к вам присоединиться...')
-        logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
-    
-    
-    def send_message_to_client(message, bot):
-        client_id = int(REDIS.get(f'client_id_for_dialogue'))
-        bot.send_message(client_id, f'💬Сообщение от оператора:\n\n{message.text}',
-                         reply_markup=keyboard_for_delete_dialogue())
-        logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
-    
-    
-    def send_message_to_operator(message, bot):
-        bot.send_message(OPERATOR_ID, f'💬Сообщение от клиента:\n{message.from_user.id}\n\n{message.text}',
-                         reply_markup=keyboard_for_delete_dialogue())
-    
-    
-    def callback_cancel_from_dialog(call, bot):
-        try:
-            bot.delete_message(call.message.chat.id, call.message.id)
-            client_id = int(REDIS.get(f'client_id_for_dialogue'))
-            bot.delete_state(OPERATOR_ID, OPERATOR_ID)
-            bot.delete_state(client_id, client_id)
-            logger.info(f'Состояние клиента - {bot.get_state(client_id, client_id)}')
-            logger.info(f'Состояние оператора - {bot.get_state(OPERATOR_ID, OPERATOR_ID)}')
-    
-            if call.from_user.id == OPERATOR_ID:
-                bot.send_message(OPERATOR_ID, f'Вы вышли из диалога! \n\nНажмите /start - для входа в меню')
-                bot.send_message(client_id, f'Оператор завершил диалог с вами')
-            else:
-                bot.send_message(client_id, f'Вы вышли из диалога\n\nНажмите /start - для входа в меню')
-                bot.send_message(OPERATOR_ID, f'Клиент завершил диалог с вами')
-            REDIS.delete(f'client_id_for_dialogue')
-        except Exception as e:
-            logger.error(f'{e}')
-            not_dialogs(call.from_user.id, bot)
-    
-    
-    def not_dialogs(user_id: int, bot):
-        if user_id == OPERATOR_ID:
-            bot.delete_state(OPERATOR_ID, OPERATOR_ID)
-            bot.send_message(OPERATOR_ID, 'Все диалоги закрыты')
-        else:
-            bot.delete_state(user_id, user_id)
-            bot.send_message(user_id, f'Нажмите /start - для входа в меню')
+* Для поиска бота в телеграм введите: @mister_h_bot (https://t.me/mister_h_bot)
+<p style="text-align: center;"><img src="static/img/interface/photo_22.jpg" width=450px height=200px></p>
 
 
 
 
-#### Клавиатура 
 
 
-    def keyboard_for_tests():
-        poll_type = KeyboardButtonPollType(type='quiz')
-        keyboard = types.ReplyKeyboardMarkup(input_field_placeholder='Выберите вопрос:', is_persistent=True)
-        key1 = types.KeyboardButton(text='1', request_poll=poll_type)
-        key2 = types.KeyboardButton(text='2')
-        key3 = types.KeyboardButton(text='3')
-        key4 = types.KeyboardButton(text='4')
-        key5 = types.KeyboardButton(text='5')
-        key6 = types.KeyboardButton(text='6')
-        key7 = types.KeyboardButton(text='7')
-        key8 = types.KeyboardButton(text='8')
-        key9 = types.KeyboardButton(text='9')
-        key10 = types.KeyboardButton(text='10')
-        key11 = types.KeyboardButton(text='11')
-        key12 = types.KeyboardButton(text='12')
-        key13 = types.KeyboardButton(text='13')
-        key14 = types.KeyboardButton(text='14')
-        key15 = types.KeyboardButton(text='15')
-        keyboard.add(key1, key2, key3, key4, key5, key6,
-                     key7, key8, key9, key10, key11, key12, key13, key14, key15)
-        return keyboard
+#### Запустите бота нажав на start. Вас поприветствует телеграм-бот и предложит зарегистрироваться. Для регистрации вам нужно будет ввести такие данные как:
+* Имя 
+* Название компании
+* Номер телефона
+* Ваш веб-сайт
+
+<div style="text-align: center;">
+<img src="static/img/interface/photo_11.jpg" width=400px height=300px>
+<img src="static/img/interface/photo_12.jpg" width=400px height=290px>
+<img src="static/img/interface/photo_13.jpg" width=360px height=290px>
+</div>
 
 
 
-
-### категории
-    DIRECTIONS = set(i[1] for i in get_data_briefings())
-    SUB_DIRECTIONS = set(i[2] for i in get_data_briefings() if type(i[2]) == str)
-    SECTIONS = set(i[3] for i in get_data_briefings())
-
-
-
-get_sections_from_db(callback.data.split('|')[0], callback.data.split('|')[1])[0][0]
-
-
-### Клавиатура вопросов
-    def keyboard_for_questions(path):
-        logger.info(f'Клавиатуру вопросов: {path}')
-        keyboard = types.InlineKeyboardMarkup(row_width=1)
-        if len(path.split('|')) == 2:   # если мы перешли с dir|sec
-            list_of_questions = get_questions_from_db(path.split('|')[0], path.split('|')[1])
-            for i in list_of_questions:
-                keyboard.add(types.InlineKeyboardButton(text=i[0], callback_data=f'{path}|{i[0]}'), row_width=2)
-                logger.info(f'В keyboard_for_questions Созданы callbackи: {path}|{i[0]}')
-        if len(path.split('|')) == 3:   # если мы перешли с dir|sub|sec
-            list_of_questions = get_questions_from_db(path.split('|')[0], path.split('|')[2], path.split('|')[1])
-            for i in list_of_questions:
-                keyboard.add(types.InlineKeyboardButton(text=i[0], callback_data=f'{path}|{i[0]}'))
-                logger.info(f'В keyboard_for_questions Созданы callbackи: {path}|{i[0]}')
-        cancel = types.InlineKeyboardButton(text='Выйти', callback_data='cancel_from_test')
-        keyboard.add(cancel)
-        return keyboard
-
-    import json
-    json_string = "{'user_id': 34543543, 'add': '1'}"
-    {'user_id': 34543543, 'add': '1'}
-    dictionary = json.loads(json_string.replace("'", '"'))
+<div style="text-align: center;">
+<p>
+После процесса регистрации вы попадете в личный кабинет пользователя. 
+Вы также сможете сразу связаться с оператором компании как в режиме "Постановки задачи" так и "Написав вручную"
+После того, как оператор начнет диалог с вами придет соответствующее уведомление.
+</p>
+<img src="static/img/interface/photo_10.jpg" width=350px height=400px>
+<img src="static/img/interface/photo_21.jpg" width=350px height=400px>
+<img src="static/img/interface/photo_18.jpg" width=350px height=400px>
+<img src="static/img/interface/photo_16.jpg" width=350px height=400px>
+</div>
 
 
+<div style="text-align: center;">
+<p>
+Также у вас есть возможность сформировать техническое задание для вашей компании. 
+Для этого нужно нажать "Сформировать Тех. Задание", выбрать соответствующую категорию:
+</p>
+<img src="static/img/interface/photo_9.jpg" width=350px height=330px>
+<img src="static/img/interface/photo_8.jpg" width=350px height=350px>
+<img src="static/img/interface/photo_7.jpg" width=350px height=200px>
+<p>
+После того, как вы выбрали соответствующую категорию вам будет предоставлено меню из нескольких вопросов
+</p>
+<img src="static/img/interface/photo_6.jpg" width=330px height=400px>
+<p>Нажав на вопрос перед вами будет предоставлен выбор ответов, при этом вы сможете отправить свой личный вариант ответа
+Внимание! Ответы принимаются только в том случае, если вы нажали "✅ Отправить ответ"
+</p>
+<img src="static/img/interface/photo_5.jpg" width=350px height=430px>
+<p>Если вы все-же хотите пропустить определенный вопрос, просто нажмите - "Следующий вопрос"</p>
+<img src="static/img/interface/photo_3.jpg" width=350px height=150px>
+<p>Так выглядит меню после того как вы ответили на некоторые вопросы. Если вдруг вы захотите изменить ответ на
+определенный вопрос, нажмите на него и выберите "Изменить ответ"</p>
+<img src="static/img/interface/photo_4.jpg" width=330px height=400px>
+</div>
 
-#### На всякий клава для вопросов: 
-
-    def keyboard_for_questions(path):
-        logger.info(f'Клавиатуру вопросов: {path}')
-        keyboard = types.InlineKeyboardMarkup(row_width=1)
-        if len(path.split('|')) == 2:   # если мы перешли с dir|sec
-            list_of_questions = get_questions_from_db(path.split('|')[0], path.split('|')[1])
-    
-            for i in list_of_questions:
-                keyboard.add(types.InlineKeyboardButton(text=i[1], callback_data=f'{path}|{i[0]}'))
-                logger.info(f'В keyboard_for_questions Созданы callbackи: {path}|{i[0]}')
-        if len(path.split('|')) == 3:   # если мы перешли с dir|sub|sec
-            list_of_questions = get_questions_from_db(path.split('|')[0], path.split('|')[2], path.split('|')[1])
-            for i in list_of_questions:
-                keyboard.add(types.InlineKeyboardButton(text=i[1], callback_data=f'{path}|{i[0]}'))
-                logger.info(f'В keyboard_for_questions Созданы callbackи: {path}|{i[0]}')
-        cancel = types.InlineKeyboardButton(text='Выйти', callback_data='cancel_from_inline_menu')
-        keyboard.add(cancel)
-        return keyboard
-
-
-
-### Для тестов 
+### Помимо основного функционала телеграм-бота, мы имеем возможность предоставить вам развлекательный контент в виде простеньких и увлекающих игр
+<div>
+<p>Выберите в основном меню раздел игр и запустите одну из них 😊</p>
+<img src="static/img/interface/photo_2.jpg" width=300px height=200px>
+<img src="static/img/interface/photo_1.jpg" width=200px height=400px>
+<img src="static/img/interface/photo_15.jpg" width=280px height=300px>
+<img src="static/img/interface/photo_19.jpg" width=250px height=470px>
+</div>
 
 
 
 
-###  Загрузить файл в БД
-
-    def add_document_to_db(user_id: int, tech_doc=None, cp_doc=None):
-        if tech_doc is not None and cp_doc is None:
-            execute(
-                sql='''INSERT INTO documents_of_clients (tech_doc, client_id) VALUES (%s, %s)''',
-                params=[(tech_doc, user_id)])
-        elif cp_doc is not None and tech_doc is None:
-            execute(
-                sql='''INSERT INTO documents_of_clients (CP_doc, client_id) VALUES (%s, %s)''',
-                params=[(cp_doc, user_id)])
-        else:
-            raise 'В аргументе должен быть всего 1 файл'
-    
-    
-    def get_document_from_db(user_id: int, tech_doc=None, cp_doc=None):
-        if tech_doc is not None and cp_doc is None:
-            doc = fetch_one(
-                sql='''SELECT tech_doc FROM documents_of_clients WHERE id = %s''',
-                params=(user_id,))
-        elif cp_doc is not None and tech_doc is None:
-            doc = fetch_one(
-                sql='''SELECT CP_doc FROM documents_of_clients WHERE id = %s''',
-                params=(user_id,))
-        else:
-            raise 'В аргументе должен быть всего 1 файл'
-        return doc
-    
-    if __name__ == '__main__':
-        pass
-        # with open('cp_document.docx', 'wb') as f:
-        #     x = get_document_from_db(5432693304, tech_doc=True)
-        #     f.write(x)
-    
-    
-    CREATE TABLE documents_of_clients (
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        id BIGINT AUTO_INCREMENT PRIMARY KEY NOT NULL,
-        CP_doc BLOB,
-        tech_doc BLOB,
-        client_id BIGINT,
-        FOREIGN KEY(client_id) REFERENCES clients(id)
-    );
 
 
 
-### Создание опросников 
 
-    bot.send_message(message.chat.id, "Ответьте на вопрос")
-    answer_options = ["кофе", "чай", "спать", "сок"]
-
-    bot.send_poll(
-        chat_id=message.chat.id,
-        question="Чего бы вы хотели",
-        options=answer_options,
-        type="quiz",
-        correct_option_id=3,
-        explanation='Не тот вариант))',
-        is_anonymous=False,
-    )
+# Информация для разработчиков
+## Данные, необходимые для работы сервиса
+* TELEGRAM_BOT_API_TOKEN - токен, выданный BotFather для вашего бота
+* OPERATOR_ID - telegram ID пользователя(оператора) для взаимодействия с ботом
+* MySQL_HOST
+* MySQL_USER
+* MySQL_PASS
+* MySQL_DB
 
 
+# Установка приложения
+## Telegram
+- Создаём бота в BotFather (https://t.me/BotFather)
+- Получение telegram ID для оператора
 
-### Выборка из базы данных 
+## Cерверная часть
+1. [Установка и настройка nginx (Web-сервера)](#1)
+2. [Настройка и приобретение LetsEncrypt SSL-сертификата](#2)
+3. [Настройка Redis](#3)
+4. [Настройка WEBHOOK](#4)
+5. [Установка и настройка СУБД MySQL](#5)
+6. [Настройка gunicorn](#6)
+7. [Настройка supervisor](#7)
 
-    SELECT questions.id, questions.question_text, COALESCE(clients_briefings.user_response, 'Ответа нет') AS answer_text
-    FROM questions
-    LEFT JOIN clients_briefings ON questions.id = clients_briefings.question_id AND clients_briefings.client_id = 123
-    WHERE questions.id = 2;
+
+### Установка и настройка nginx (Web-сервера)<a id='1'></a>
+```sudo apt-get install nginx```
+Создаём файл конфигурации для проксирования запросов gunicorn'у
+```sudo nano /etc/nginx/sites-enabled/telegram_bot_app```
+Вставляем (+ указать доменное имя сервера)
+```
+server {
+    server_name <YOUR_DOMAIN_NAME>;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Prefix /;
+    }
+```
+Проверка конфигурационного файла
+```sudo nginx -t```
+Перезагрузка
+```sudo nginx -s reload``` или ```sudo service nginx restart```
+
+### Настройка LetsEncrypt SSL-сертификата<a id='2'></a>
+- https://letsencrypt.org/getting-started/ - сайт для бесплатного получения SSL-сертификата
+- https://certbot.eff.org/ - в этом разделе выбираем характеристики нашего сервера и получаем инструкцию для установки SSL-сертификата
+- https://certbot.eff.org/instructions?ws=nginx&os=ubuntufocal - пример для nginx + ubuntu
+
+
+```sudo apt install snapd```
+
+
+Производим настройку сертификата:
+```sudo certbot --nginx```
+
+Просмотр созданных сертификатов
+```
+sudo su
+ls -l /etc/letsencrypt/live/website.com
+```
+Автоматическое обновление сертификатов:
+```certbot renew --dry-run```
+
+После установки сертификата файл /etc/nginx/sites-enabled/telegram_bot_app выглядит так:
+```
+server {
+    server_name website.com;
+    location / {
+        proxy_pass http://127.0.0.1:8000/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Prefix /;
+    }
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/website.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/website.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+server {
+    if ($host = website.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    server_name website.com;
+    return 404; # managed by Certbot
+}
+```
+
+### Настройка Redis<a id='3'></a>
+Устанавливаем Redis (для быстрой обработки запросов и хранения различных данных в памяти при потоковой передачи в режиме реального времени)
+
+Установка
+> sudo apt-get install redis
+
+Если нужно 
+```
+sudo apt install lsb-release
+sudo snap install redis
+sudo snap install redis-configurable
+```
+Найти файл
+```find /* <filename>```
+
+```
+sudo systemctl start redis
+```
+If FAILURE: 
+```
+sudo chown -R redis:redis /var/log/redis
+sudo chmod -R u+rwX,g+rwX,u+rx /var/log/redis
+sudo chmod +r /etc/redis/redis.conf
+```
+
+Запуск
+> redis-cli
+
+Пароль настраивается непосредственно в файле конфигурации Redis - /etc/redis/redis.conf.
+
+### Настройка WEBHOOK<a id='4'></a>
+Задать адрес для webhook
+```
+curl https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://<YOUR_ip_address>
+```
+Проверка WEBHOOK
+```
+curl https://api.telegram.org/bot<YOUR_TOKEN>/getWebhookInfo
+```
+Удалить WEBHOOK
+```
+curl https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook
+```
+
+### Установка и настройка СУБД MySQL<a id='5'></a>
+Дополнительная инструкция - https://www.digitalocean.com/community/tutorials/how-to-install-mysql-on-ubuntu-20-04-ru
+> sudo apt update
+> sudo apt install mysql-server
+> sudo mysql_secure_installation
+
+Если Failed! Error при установке:
+> sudo killall -9 mysql_secure_installation
+
+Запустите клиент mysql:
+> sudo mysql
+
+Запустите следующий SQL-запрос (Заменив PASSWORD на ваш пароль):
+> ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'PASSWORD';
+>
+> exit
+
+Затем пройти настройку защиты, выполнив следующую команду:
+```sudo mysql_secure_installation```
+
+Для использования пароля для подключения к MySQL в качестве root пользователя необходимо изменить метод аутентификации с auth_socket на другой плагин, например caching_sha2_password или mysql_native_password.
+> mysql -u root -p
+> 
+> ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'PASSWORD';
+> 
+> FLUSH PRIVILEGES;
+>
+> exit
+
+Войти снова
+> mysql -u root -p
+
+Создайте нового пользователя и придумайте для него надежный пароль:
+
+> CREATE USER 'username'@'localhost' IDENTIFIED BY 'PASSWORD';
+
+> GRANT ALL PRIVILEGES ON *.* TO 'username'@'localhost' WITH GRANT OPTION;
+
+Перезапуск MySQL:
+> systemctl restart mysql.service
+
+> systemctl status mysql.service
+
+В качестве дополнительной проверки вы можете попробовать подключиться к базе данных с помощью
+инструмента mysqladmin, который позволяет запускать команды администрирования. Например, эта команда
+позволяет подключиться к MySQL в качестве пользователя root (-u root), запросить пароль (-p) и обеспечить возврат версии.
+> sudo mysqladmin -p -u root version
+
+### Настройка gunicorn (прокси-сервер WSGI)<a id='6'></a>
+- В файле [gunicorn_config.py](gunicorn_config.py) меняем стандартные данные на собственные (В зависимости от расположения путей и настроек сервера)
+- В bash-скрипте [start_gunicorn.sh](bin%2Fstart_gunicorn.sh) также меняем стандартные данные на собственные (В зависимости от расположения путей и настроек сервера)
+Добавляем права на выполнение bash-скрипта:
+> chmod +x start_gunicorn.sh
+
+Просмотр логов gunicorn:
+```/var/log/gunicorn/```
+
+### Настройка supervisor<a id='7'></a>
+Установка
+
+> sudo apt supervisor
+
+> sudo nano /etc/supervisor/conf.d/telegram_bot.conf
+
+Вставляем:
+```
+[program:gunicorn]
+command=/home/user/code/bot/telegram_bot/bin/start_gunicorn.sh
+user=user
+process_name=%(program_name)s
+numproc=1
+autostart=1
+autorestart=1
+redirect_stderr=true
+```
+Запуск сервиса:
+```sudo service supervisor start```
+
+Логи:
+```cd /var/log/supervisor/```
+
+[![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Fira+Code&pause=1000&width=435&lines=Hope+this+app+will+help+you+%F0%9F%98%89)](https://git.io/typing-svg)
