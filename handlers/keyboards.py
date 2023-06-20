@@ -13,6 +13,14 @@ logger = logging.getLogger(__name__)
 
 
 class GeneralKeyboards:
+
+    @staticmethod
+    def type_of_user():
+        keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+        keyboard.add(types.KeyboardButton(text="Клиент"))
+        keyboard.add(types.KeyboardButton(text="Партнер"))
+        return keyboard
+
     @staticmethod
     def directions() -> types.InlineKeyboardMarkup:
         logger.info(f'Клавиатура: directions')
@@ -130,7 +138,8 @@ class ClientKeyboards(GeneralKeyboards):
         button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
         for row in button_rows:
             keyboard.row(*row)
-        technical_exercise = types.InlineKeyboardButton(text='Сформировать ТЗ',  callback_data=f'{ClientCallbacks.gen_tech_exercise}{path}')
+        technical_exercise = types.InlineKeyboardButton(text='Сформировать ТЗ',
+                                                        callback_data=f'{ClientCallbacks.gen_tech_exercise}{path}')
         cancel = types.InlineKeyboardButton(text='Назад', callback_data=BaseCallbacks.cancel_to_directions)
         main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=BaseCallbacks.enter_menu)
         keyboard.add(technical_exercise, cancel, main_menu)
@@ -354,13 +363,21 @@ class OperatorKeyboards(GeneralKeyboards):
 
 class PartnerKeyboards(GeneralKeyboards):
     @staticmethod
-    def start():
+    def enter_menu(doc: bool = False):
+        """Keyboard for main menu"""
         keyboard = types.InlineKeyboardMarkup(row_width=True)
-        btn1 = types.InlineKeyboardButton(text='', callback_data='')
-        btn2 = types.InlineKeyboardButton(text='', callback_data='')
-        btn3 = types.InlineKeyboardButton(text='Документы', callback_data='')
-        btn4 = types.InlineKeyboardButton(text='Связаться с оператором компании Mr.Эйч', callback_data='')
-        keyboard.add(btn1, btn2, btn3, btn4)
+        key1 = types.InlineKeyboardButton(text='📋 Сформировать Тех. Задание', callback_data=BaseCallbacks.briefing)
+        key2 = types.InlineKeyboardButton(text='💬 Поставить задачу', callback_data=ClientCallbacks.instant_message)
+        key3 = types.InlineKeyboardButton(text='📝 Файлы',
+                                          callback_data=ClientCallbacks.files)
+        key4 = types.InlineKeyboardButton(text='🎲 Игры', callback_data=ClientCallbacks.games)
+        key5 = types.InlineKeyboardButton(text='👨‍💻 Написать оператору', callback_data=ClientCallbacks.chat)
+        # key = types.InlineKeyboardButton(text='🤳 Блог', callback_data=Callbacks.blog)
+        keyboard.add(key1)
+        if doc is True:
+            keyboard.add(key3)
+        keyboard.row(key2, key4)
+        keyboard.add(key5)
         return keyboard
 
 

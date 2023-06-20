@@ -5,19 +5,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="408f61a6-9975-4ccc-b2f3-90f02b4ce47f" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/handlers/callback_handlers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/clients.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/create_db.sql" beforeDir="false" afterPath="$PROJECT_DIR$/create_db.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/callback_handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/callback_handlers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/commands.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/dialog.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/get_info.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/get_info.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/keyboards.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/operator.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/register_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/register_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/text_messages.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/text_messages.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/callbacks.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/callbacks.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/db_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/db_data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/file_handler.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/file_handler.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/filters.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/redis_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/redis_db.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/states.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/states.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/string_parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/string_parser.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -20,6 +20,16 @@ class RedisCache:
         else:
             return False
 
+    def add_partner(self, user_id):
+        self.redis.setex(f'partner_exist:{user_id}', 86400, b'True')
+
+    def check_partner(self, user_id):
+        in_db = self.redis.get(f'partner_exist:{user_id}')
+        if in_db == b'True':
+            return True
+        else:
+            return False
+
     def get_user_data(self, user_id: int) -> dict:
         user_data = self.redis.get(f'user_data:{user_id}')
         if user_data:

@@ -1,12 +1,11 @@
-from handlers import dialog, documents, games
-from handlers.commands import ClientCommands, OperatorCommands
-from handlers.dialog import callback_enter_into_a_dialog, callback_client_info
+from handlers import documents, games
+from handlers.commands import ClientCommands, OperatorCommands, GeneralCommands
 from handlers import get_info
 from handlers.callback_handlers import OperatorCallbackHandlers, ClientCallbackHandlers, BaseCallbackHandlers
 from services.callbacks import ClientCallbacks, OperatorCallbacks, GamesCallbacks, BaseCallbacks
 from services.filters import CheckPhoneNumber, ContactForm, CheckConsent, CheckFile, CheckClient, \
     CheckSubDirectory, CheckSection, FinishPoll, NextQuestion, CheckOperator, CheckTextOnlyInMessage, \
-    CheckDocumentInMessage, CheckPhotoInMessage, CheckChangeQuestion
+    CheckDocumentInMessage, CheckPhotoInMessage, CheckChangeQuestion, CheckPartner, UserType
 from services.states import MyStates, OperatorStates
 
 
@@ -21,6 +20,8 @@ def registration_filters(bot):
                CheckConsent(),
                CheckFile(),
                CheckClient(),
+               CheckPartner(),
+               UserType(),
                CheckOperator(),
                CheckSubDirectory(),
                CheckSection(),
@@ -38,12 +39,18 @@ def registration_filters(bot):
 
 def registration_commands(bot):
     """   Регистрация команд telegram бота """
+    # GENERAL
+    bot.register_message_handler(commands=['start'], callback=GeneralCommands.start_unauthorized, pass_bot=True,
+                                 client=False, partner=False, operator=False)
+
+    # OPERATOR
     bot.register_message_handler(commands=['start'], callback=OperatorCommands.start, pass_bot=True, operator=True)
-    bot.register_message_handler(commands=['start'], callback=ClientCommands.start, pass_bot=True, client=True)
-    bot.register_message_handler(commands=['start'], callback=ClientCommands.start_unauthorized, pass_bot=True,
-                                 client=False)
     bot.register_message_handler(commands=['test'], callback=OperatorCommands.test_, pass_bot=True, operator=True)
-    bot.register_message_handler(commands=['cancel'], state="*", callback=ClientCommands.cancel_delete_state, pass_bot=True, client=True)
+
+    # CLIENT
+    bot.register_message_handler(commands=['start'], callback=ClientCommands.start, pass_bot=True, client=True)
+    bot.register_message_handler(commands=['cancel'], state="*", callback=ClientCommands.cancel, pass_bot=True,
+                                 client=True)
 
 
 def registration_file_handling(bot):
@@ -75,22 +82,27 @@ def registration_file_handling(bot):
 
 def registration_states(bot):
     """   Регистрация состояний пользователя   """
-    bot.register_message_handler(state="*", text=['Отменить'], callback=ClientCommands.cancel_delete_state, pass_bot=True)
-    bot.register_message_handler(state="*", text=['К вопросам'], callback=ClientCommands.cancel_delete_state, pass_bot=True)
-    bot.register_message_handler(state=MyStates.request, callback=dialog.send_request_to_operator,
+    bot.register_message_handler(state="*", text=['Отменить'], callback=GeneralCommands.cancel, pass_bot=True, client=False, operator=False, partner=False)
+    bot.register_message_handler(state="*", text=['Отменить'], callback=ClientCommands.cancel, pass_bot=True, client=True)
+    bot.register_message_handler(state="*", text=['К вопросам'], callback=ClientCommands.cancel, pass_bot=True, client=True)
+    bot.register_message_handler(state=MyStates.request, callback=get_info.send_request_to_operator,
                                  pass_bot=True)
+
     bot.register_message_handler(state=MyStates.dialogue_with_operator,
-                                 callback=dialog.send_message_to_operator, pass_bot=True, text_only=True)
+                                 callback=get_info.send_message_to_operator, pass_bot=True, text_only=True)
     bot.register_message_handler(state=MyStates.dialogue_with_operator,
-                                 callback=dialog.send_document_to_operator, pass_bot=True, document=True)
+                                 callback=get_info.send_document_to_operator, pass_bot=True, document=True)
     bot.register_message_handler(state=MyStates.dialogue_with_operator,
-                                 callback=dialog.send_photo_to_operator, pass_bot=True, photo=True)
+                                 callback=get_info.send_photo_to_operator, pass_bot=True, photo=True)
     bot.register_message_handler(state=MyStates.dialogue_with_client,
-                                 callback=dialog.send_message_to_client, pass_bot=True, text_only=True)
+                                 callback=get_info.send_message_to_client, pass_bot=True, text_only=True)
     bot.register_message_handler(state=MyStates.dialogue_with_client,
-                                 callback=dialog.send_document_to_client, pass_bot=True, document=True)
+                                 callback=get_info.send_document_to_client, pass_bot=True, document=True)
     bot.register_message_handler(state=MyStates.dialogue_with_client,
-                                 callback=dialog.send_photo_to_client, pass_bot=True, photo=True)
+                                 callback=get_info.send_photo_to_client, pass_bot=True, photo=True)
+
+    bot.register_message_handler(state=MyStates.type_of_user, callback=get_info.get_type_of_user, pass_bot=True, user_type=True)
+    bot.register_message_handler(state=MyStates.type_of_user, callback=get_info.user_type_incorrect, pass_bot=True, user_type=False)
     bot.register_message_handler(state=MyStates.name, callback=get_info.get_user_name, pass_bot=True)
     bot.register_message_handler(state=MyStates.phone_number, callback=get_info.get_user_phone, pass_bot=True,
                                  contact_form=True,
@@ -173,7 +185,7 @@ def registration_menu_navigation(bot):
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.chat,
                                         callback=ClientCallbackHandlers.chat_with_operator, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.instant_message,
-                                        callback=dialog.callback_instant_messaging_service, pass_bot=True)
+                                        callback=ClientCallbackHandlers.instant_messaging_service, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.blog,
                                         callback=ClientCallbackHandlers.blog, pass_bot=True)
 
@@ -186,7 +198,6 @@ def registration_menu_navigation(bot):
     bot.register_callback_query_handler(func=lambda callback: callback.data == BaseCallbacks.cancel_to_directions,
                                         callback=BaseCallbackHandlers.cancel_to_directions, pass_bot=True)
 
-
     # OPERATOR
     bot.register_callback_query_handler(func=lambda callback: callback.data == BaseCallbacks.enter_menu,
                                         callback=OperatorCallbackHandlers.enter_menu, pass_bot=True, operator=True)
@@ -196,10 +207,10 @@ def registration_menu_navigation(bot):
 
     bot.register_callback_query_handler(
         func=lambda callback: OperatorCallbacks.parse_callback(callback.data) == OperatorCallbacks.client_info,
-        callback=callback_client_info, pass_bot=True)
+        callback=OperatorCallbackHandlers.client_info, pass_bot=True)
     bot.register_callback_query_handler(
         func=lambda callback: OperatorCallbacks.parse_callback(callback.data) == OperatorCallbacks.enter_dialog,
-        callback=callback_enter_into_a_dialog, pass_bot=True)
+        callback=OperatorCallbackHandlers.enter_into_a_dialog, pass_bot=True)
     bot.register_callback_query_handler(
         func=lambda callback: OperatorCallbacks.parse_callback(callback.data) == OperatorCallbacks.dialog_history,
         callback=OperatorCallbackHandlers.get_dialogue_history, pass_bot=True)
@@ -286,7 +297,7 @@ def registration_menu_navigation(bot):
         callback=OperatorCallbackHandlers.client_other_documents,
         pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorCallbacks.end_dialogue,
-                                        callback=dialog.callback_operator_left_dialog, pass_bot=True,
+                                        callback=OperatorCallbackHandlers.left_dialog, pass_bot=True,
                                         operator=True)
     bot.register_callback_query_handler(
         func=lambda callback: callback.data == OperatorCallbacks.change_question,

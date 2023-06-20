@@ -19,7 +19,7 @@ class MyStates(StatesGroup):
     get_commercial_offer_file_in_dialogue = State()
     get_report_file_in_dialogue = State()
     get_other_file_in_dialogue = State()
-
+    type_of_user = State()
 
 class OperatorStates(StatesGroup):
     change_question = State()

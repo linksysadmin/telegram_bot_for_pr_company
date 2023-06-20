@@ -4,7 +4,7 @@ import re
 import telebot
 
 from config import OPERATOR_ID
-from services.db_data import get_data_questions, check_client_in_database
+from services.db_data import get_data_questions, check_client_in_database, check_partner_in_database
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,16 @@ class CheckClient(telebot.custom_filters.SimpleCustomFilter):
             return False
 
 
+class CheckPartner(telebot.custom_filters.SimpleCustomFilter):
+    key = 'partner'
+
+    def check(self, call):
+        if check_partner_in_database(call.from_user.id):
+            return True
+        else:
+            return False
+
+
 class CheckOperator(telebot.custom_filters.SimpleCustomFilter):
     key = 'operator'
 
@@ -50,6 +60,15 @@ class CheckOperator(telebot.custom_filters.SimpleCustomFilter):
         else:
             return False
 
+
+class UserType(telebot.custom_filters.SimpleCustomFilter):
+    key = 'user_type'
+
+    def check(self, message):
+        if message.text in ('Партнер', 'Клиент'):
+            return True
+        else:
+            return False
 
 class CheckTextOnlyInMessage(telebot.custom_filters.SimpleCustomFilter):
     key = 'text_only'

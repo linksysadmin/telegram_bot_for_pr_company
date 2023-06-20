@@ -2,7 +2,13 @@
 CREATE TABLE partners (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     id BIGINT PRIMARY KEY,
-    name VARCHAR(255)
+    name VARCHAR(255),
+    tg_username VARCHAR(255),
+    phone VARCHAR(50),
+    company TEXT,
+    website TEXT,
+    documents BOOLEAN DEFAULT FALSE,
+    status VARCHAR(255) DEFAULT 'registered'
 );
 
 CREATE TABLE employees (

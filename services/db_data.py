@@ -10,11 +10,12 @@ from services.redis_db import redis_cache
 logger = logging.getLogger(__name__)
 
 
-def get_user_data_from_db(user_id: int) -> dict:
+def get_user_data_from_db(user_id: int, table: str = 'clients') -> dict:
     """
     Функция принимает telegram_id пользователя
     Args:
         user_id:
+        table: таблица в которой выполниться поиск пользователя
     Returns:
         A dictionary with the following keys:
         Field Name | Data Type | Description
@@ -32,7 +33,7 @@ def get_user_data_from_db(user_id: int) -> dict:
         user_data = redis_cache.get_user_data(user_id)
         if user_data:
             return user_data
-        data = fetch_all(sql='SELECT * FROM clients WHERE id = %s',
+        data = fetch_all(sql='SELECT * FROM {} WHERE id = %s'.format(table),
                          params=(user_id,))
         dict_user_data = {
             'date_of_registration': data[0][0].strftime('%d-%m-%Y'),
@@ -111,6 +112,20 @@ def check_client_in_database(user_id: int) -> bool:
     )
     if result_from_db:
         redis_cache.add_client(user_id)
+        return True
+    return False
+
+
+def check_partner_in_database(user_id: int) -> bool:
+    user = redis_cache.check_partner(user_id)
+    if user:
+        return True
+    result_from_db = fetch_all(
+        sql='''SELECT id FROM partners WHERE id = %s''',
+        params=(user_id,)
+    )
+    if result_from_db:
+        redis_cache.add_partner(user_id)
         return True
     return False
 
@@ -238,11 +253,11 @@ def update_question_and_answers(question_id: int, question: str, answers: str):
     # print(x, z)
 
 
-def add_clients_data_to_db(user_id: int, name: str, tg_username, phone: str, company: str, website: str):
+def add_clients_data_to_db(table: str, user_id: int, name: str, tg_username, phone: str, company: str, website: str):
     try:
         execute(
-            sql='''INSERT INTO clients (id, name, tg_username, phone, company, website)
-                 VALUES (%s, %s, %s, %s, %s, %s)''',
+            sql='''INSERT INTO {} (id, name, tg_username, phone, company, website)
+                 VALUES (%s, %s, %s, %s, %s, %s)'''.format(table),
             params=[(user_id, name, tg_username, phone, company, website)])
         return True
     except Exception as e:

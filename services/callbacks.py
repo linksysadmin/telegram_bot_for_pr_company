@@ -27,7 +27,7 @@ class BaseCallbacks:
             return data
 
 
-class ClientCallbacks():
+class ClientCallbacks:
     files = 'files'
     chat = 'chat'
     instant_message = 'instant_message'
