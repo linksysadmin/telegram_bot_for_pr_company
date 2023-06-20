@@ -4,13 +4,13 @@ import re
 import telebot
 
 from config import OPERATOR_ID
-from services.db_data import check_user_in_database, get_data_questions
+from services.db_data import get_data_questions, check_client_in_database
 
 logger = logging.getLogger(__name__)
 
 
-class CheckPathToSection(telebot.custom_filters.SimpleCustomFilter):
-    key = 'path_to_section'
+class CheckSubDirectory(telebot.custom_filters.SimpleCustomFilter):
+    key = 'sub_directory'
 
     def check(self, call):
         if call.data in set(f'{i[1]}|{i[2]}' for i in get_data_questions() if i[2] is not None):
@@ -19,38 +19,30 @@ class CheckPathToSection(telebot.custom_filters.SimpleCustomFilter):
             return False
 
 
-class CheckPathToSectionWithSubDirectory(telebot.custom_filters.SimpleCustomFilter):
-    key = 'path_to_section_with_sub_directory'
+class CheckSection(telebot.custom_filters.SimpleCustomFilter):
+    key = 'section'
 
     def check(self, call):
-        if call.data in set(f'{i[1]}|{i[2]}|{i[3]}' for i in get_data_questions() if i[2] is not None):
+        data_questions = get_data_questions()
+        if call.data in set(f'{i[1]}|{i[2]}|{i[3]}' for i in data_questions if i[2] is not None) \
+                or call.data in set(f'{i[1]}|{i[3]}' for i in data_questions if i[2] is None):
             return True
         else:
             return False
 
 
-class CheckPathToSectionWithoutSubDirectory(telebot.custom_filters.SimpleCustomFilter):
-    key = 'path_to_section_without_sub_directory'
+class CheckClient(telebot.custom_filters.SimpleCustomFilter):
+    key = 'client'
 
     def check(self, call):
-        if call.data in set(f'{i[1]}|{i[3]}' for i in get_data_questions() if i[2] is None):
-            return True
-        else:
-            return False
-
-
-class CheckUserRegistration(telebot.custom_filters.SimpleCustomFilter):
-    key = 'check_user_registration'
-
-    def check(self, call):
-        if check_user_in_database(call.from_user.id):
+        if check_client_in_database(call.from_user.id):
             return True
         else:
             return False
 
 
 class CheckOperator(telebot.custom_filters.SimpleCustomFilter):
-    key = 'check_operator'
+    key = 'operator'
 
     def check(self, message):
         if message.from_user.id == OPERATOR_ID:

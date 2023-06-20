@@ -10,6 +10,16 @@ class RedisCache:
     def __init__(self, host='localhost', port=6379, db=0):
         self.redis = redis.Redis(host=host, port=port, db=db)
 
+    def add_client(self, user_id):
+        self.redis.setex(f'client_exist:{user_id}', 86400, b'True')
+
+    def check_client(self, user_id):
+        in_db = self.redis.get(f'client_exist:{user_id}')
+        if in_db == b'True':
+            return True
+        else:
+            return False
+
     def get_user_data(self, user_id: int) -> dict:
         user_data = self.redis.get(f'user_data:{user_id}')
         if user_data:

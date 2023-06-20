@@ -55,13 +55,5 @@ def fetch_all(sql: str, params: Any | None = None) -> list[tuple]:
         return results
 
 
-def fetch_one(sql: str, params: Any | None = None):
-    with connect_to_db() as my_db:
-        cursor = my_db.cursor()
-        cursor.execute(sql, params)
-        doc = cursor.fetchone()[0]
-        return doc
-
-
 if __name__ == '__main__':
     pass

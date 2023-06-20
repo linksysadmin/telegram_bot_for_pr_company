@@ -1,5 +1,5 @@
 <div align="center" style="margin-top: 10%;">
-<img src="static/img/logo-e01df794.svg" width="50%">
+<img src="static/img/logo.svg" width="50%">
 <h1 align="center">Бот Mr. Эйч</h1>
 </div>
 

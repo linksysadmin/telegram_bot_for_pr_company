@@ -1,8 +1,4 @@
-import logging
-
 from telebot.handler_backends import State, StatesGroup
-
-logger = logging.getLogger(__name__)
 
 
 class MyStates(StatesGroup):

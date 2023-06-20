@@ -1,10 +1,8 @@
 import logging
 
 from config import DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_REPORTS, DIR_FOR_OTHER_FILES, DIR_FOR_TECHNICAL_TASKS
-from handlers.commands import start_for_clients
-from handlers.keyboards import remove_keyboard, \
-    keyboard_send_phone, keyboard_for_answer, keyboard_enter_menu_for_clients, \
-    keyboard_for_questions, keyboard_for_sex, keyboard_for_age, keyboard_for_other_answers
+from handlers.commands import ClientCommands
+from handlers.keyboards import remove_keyboard, ClientKeyboards
 from handlers.text_messages import TEXT_MESSAGES
 from services.db_data import add_clients_data_to_db, get_question_and_answers_from_db, add_user_answers_to_db, \
     get_user_answer
@@ -20,7 +18,7 @@ def get_user_name(message, bot):
     """ STATE 1 Получение имени от пользователя """
     bot.add_data(message.from_user.id, message.chat.id, name=message.text, tg_username=message.from_user.username)
     bot.send_message(message.chat.id, 'Укажите номер вашего телефона\n\nВы можете нажать клавишу "Отправить номер'
-                                      ' телефона" для отправки номера 📲', reply_markup=keyboard_send_phone())
+                                      ' телефона" для отправки номера 📲', reply_markup=ClientKeyboards.send_phone())
     bot.set_state(message.chat.id, MyStates.phone_number, message.from_user.id)
     logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
@@ -59,7 +57,7 @@ def get_user_company(message, bot):
     bot.delete_state(message.from_user.id, message.chat.id)
     bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=name,
                                                                     company=message.text),
-                     reply_markup=keyboard_enter_menu_for_clients())
+                     reply_markup=ClientKeyboards.enter_menu())
     logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
 
@@ -67,14 +65,14 @@ def get_answer_from_user(message, bot):
     match message.text:
         case 'Пол':
             redis_cache.add_answers_to_list(client_id=message.from_user.id, answer=message.text)
-            bot.send_message(message.chat.id, f'Выберите пол', reply_markup=keyboard_for_sex())
+            bot.send_message(message.chat.id, f'Выберите пол', reply_markup=ClientKeyboards.sex())
         case 'Возраст':
             redis_cache.add_answers_to_list(client_id=message.from_user.id, answer=message.text)
-            bot.send_message(message.chat.id, f'Выберите возраст', reply_markup=keyboard_for_age())
+            bot.send_message(message.chat.id, f'Выберите возраст', reply_markup=ClientKeyboards.age())
         case 'Доход' | 'Интересы':
             redis_cache.add_answers_to_list(client_id=message.from_user.id, answer=message.text)
             bot.send_message(message.chat.id, f'Укажите {message.text.lower()}',
-                             reply_markup=keyboard_for_other_answers())
+                             reply_markup=ClientKeyboards.other_answers())
         case _:
             redis_cache.add_answers_to_list(client_id=message.from_user.id, answer=message.text)
             bot.send_message(message.chat.id, f'Ответ принят, нажмите "✅ Отправить ответ" если больше нечего добавить')
@@ -90,17 +88,17 @@ def next_question(message, bot):
         redis_cache.set_next_question_callback(user=message.from_user.id, callback=next_callback)
     elif next_question_id > max_question_id:
         remove_keyboard(message, bot, 'Вопросов в этом направлении больше, нет(')
-        start_for_clients(message, bot)
+        ClientCommands.start(message, bot)
         return
     question, answers = get_question_and_answers_from_db(next_question_id)
     user_answer = get_user_answer(message.from_user.id, next_question_id)
     if user_answer:
         bot.send_message(message.chat.id, f'❓{question}?\n\nВаше ответ:{user_answer}',
-                         reply_markup=keyboard_for_answer(answers))
+                         reply_markup=ClientKeyboards.answer(answers))
         return
     bot.set_state(message.from_user.id, MyStates.answer_to_question, message.from_user.id)
     bot.send_message(message.chat.id, f'❓{question}?\n\nНапишите ответ и нажмите "✅ Отправить ответ"',
-                     reply_markup=keyboard_for_answer(answers))
+                     reply_markup=ClientKeyboards.answer(answers))
 
 
 def send_user_answers_to_db(message, bot):
@@ -113,7 +111,7 @@ def send_user_answers_to_db(message, bot):
     remove_keyboard(message, bot, 'Ваш ответ получен!')
     path = redis_cache.get_keyboard_for_questions(message.from_user.id)
     bot.send_message(message.chat.id, 'Выберите вопрос:',
-                     reply_markup=keyboard_for_questions(message.from_user.id, path=path))
+                     reply_markup=ClientKeyboards.questions(message.from_user.id, path=path))
 
 
 def download_and_save_file(bot, message, path):

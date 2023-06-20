@@ -2,9 +2,7 @@ import logging
 
 from config import DIR_FOR_TECHNICAL_TASKS, DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_REPORTS, DIR_FOR_OTHER_FILES, \
     DIR_FOR_SAVE_DIALOGS
-from handlers.keyboards import keyboard_enter_menu_for_operator, keyboard_for_view_customer_information, \
-    keyboard_for_menu_in_dialogue, keyboard_with_clients, keyboard_menu_directions_of_documents, \
-    keyboard_with_client_files
+from handlers.keyboards import OperatorKeyboards
 from handlers.documents import send_document_to_telegram
 from handlers.text_messages import TEXT_MESSAGES
 from services.file_handler import find_user_documents, file_check, \
@@ -24,7 +22,7 @@ def callback_requests_for_operator(call, bot):
     callback_data_prefix = 'queue'
     bot.edit_message_text(chat_id=call.message.chat.id,
                           message_id=call.message.message_id,
-                          text=text, reply_markup=keyboard_with_clients(queue_of_clients, callback_data_prefix))
+                          text=text, reply_markup=OperatorKeyboards.clients(queue_of_clients, callback_data_prefix))
 
 
 def callback_clients_for_operator(call, bot):
@@ -35,7 +33,7 @@ def callback_clients_for_operator(call, bot):
         text = 'Нет доступных диалогов с клиентам'
     bot.edit_message_text(chat_id=call.message.chat.id,
                           message_id=call.message.message_id,
-                          text=text, reply_markup=keyboard_with_clients(list_of_clients, callback_data_prefix))
+                          text=text, reply_markup=OperatorKeyboards.clients(list_of_clients, callback_data_prefix))
 
 
 def callback_tasks_for_operator(call, bot):
@@ -45,13 +43,13 @@ def callback_tasks_for_operator(call, bot):
 def callback_settings_for_operator(call, bot):
     bot.edit_message_text(chat_id=call.message.chat.id,
                           message_id=call.message.message_id,
-                          text='Здесь вы можете изменить или добавить вопросы, секции и разделы')
+                          text='Здесь вы можете изменить или добавить вопросы, секции и разделы', reply_markup=OperatorKeyboards.settings())
 
 
 def callback_cancel_to_enter_menu_for_operator(call, bot):
     bot.edit_message_text(chat_id=call.message.chat.id,
                           message_id=call.message.message_id,
-                          text=TEXT_MESSAGES['start_for_operator'], reply_markup=keyboard_enter_menu_for_operator())
+                          text=TEXT_MESSAGES['start_for_operator'], reply_markup=OperatorKeyboards.enter_menu())
 
 
 def callback_get_dialogue_history(call, bot):
@@ -68,7 +66,7 @@ def callback_menu_directions_of_documents(call, bot):
     client_id = CallDataParser.get_client_id(call.data)
     bot.edit_message_text(chat_id=call.message.chat.id,
                           message_id=call.message.message_id, text='Выберите раздел',
-                          reply_markup=keyboard_menu_directions_of_documents(client_id))
+                          reply_markup=OperatorKeyboards.types_documents(client_id))
 
 
 def show_client_files_in_dialogue(call, bot, dir_path, client_id):
@@ -83,7 +81,7 @@ def show_client_files_in_dialogue(call, bot, dir_path, client_id):
         redis_cache.save_dict_of_path_for_download_file(client_id, dict_path_to_files)
         text = 'Выберите какой файл вы хотите получить:'
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text,
-                          reply_markup=keyboard_with_client_files(dict_path_to_files, in_dialogue=True))
+                          reply_markup=OperatorKeyboards.client_files(dict_path_to_files, in_dialogue=True))
 
 
 def callback_technical_tasks_for_operator_in_dialogue(call, bot):
@@ -117,7 +115,7 @@ def show_client_files(call, bot, dir_path, client_id):
         redis_cache.save_dict_of_path_for_download_file(client_id, dict_path_to_files)
         text = 'Выберите какой файл вы хотите получить:'
     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text,
-                          reply_markup=keyboard_with_client_files(dict_path_to_files))
+                          reply_markup=OperatorKeyboards.client_files(dict_path_to_files))
 
 
 def callback_client_technical_tasks_for_operator(call, bot):
@@ -143,7 +141,7 @@ def callback_client_other_documents_for_operator(call, bot):
 def callback_cancel_to_enter_menu_in_dialogue(call, bot):
     bot.edit_message_text(chat_id=call.message.chat.id,
                           message_id=call.message.message_id,
-                          text='Меню взаимодействия с клиентом', reply_markup=keyboard_for_menu_in_dialogue())
+                          text='Меню взаимодействия с клиентом', reply_markup=OperatorKeyboards.menu_in_dialogue())
 
 
 def callback_upload_file_in_dialogue(call, bot):
@@ -180,4 +178,4 @@ def callback_queue(call, bot):
     client_id = CallDataParser.get_client_id(call.data)
     redis_cache.move_client_to_first_place_in_queue(client_id)
     bot.send_message(call.message.chat.id, 'Вступить в диалог с клиентом ?',
-                     reply_markup=keyboard_for_view_customer_information(client_id))
+                     reply_markup=OperatorKeyboards.customer_information(client_id))

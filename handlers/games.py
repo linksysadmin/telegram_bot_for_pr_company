@@ -1,39 +1,67 @@
-from handlers.keyboards import keyboard_for_games
+import logging
+
+from handlers.keyboards import ClientKeyboards
+from telebot import apihelper
+
+from services.callbacks import GamesCallbacks
+
+logger = logging.getLogger(__name__)
 
 
 def callback_choose_game(call, bot):
     bot.edit_message_text(chat_id=call.message.chat.id,
                           message_id=call.message.message_id,
                           text='Выберите игру:',
-                          reply_markup=keyboard_for_games())
+                          reply_markup=ClientKeyboards.games())
 
 
 def callback_send_game_1(call, bot):
-    bot.send_game(call.from_user.id, game_short_name='karatekido2')
+    try:
+        bot.send_game(call.from_user.id, game_short_name=GamesCallbacks.karatekido2)
+    except apihelper.ApiTelegramException:
+        logger.error('Игра не зарегистрирована в данном боте, либо указано неверное название игры')
 
 
 def callback_send_game_2(call, bot):
-    bot.send_game(call.from_user.id, game_short_name='qubo')
+    try:
+        bot.send_game(call.from_user.id, game_short_name=GamesCallbacks.qubo)
+    except apihelper.ApiTelegramException:
+        logger.error('Игра не зарегистрирована в данном боте, либо указано неверное название игры')
 
 
 def callback_send_game_3(call, bot):
-    bot.send_game(call.from_user.id, game_short_name='basketboyrush')
+    try:
+        bot.send_game(call.from_user.id, game_short_name=GamesCallbacks.basketboyrush)
+    except apihelper.ApiTelegramException:
+        logger.error('Игра не зарегистрирована в данном боте, либо указано неверное название игры')
 
 
 def callback_send_game_4(call, bot):
-    bot.send_game(call.from_user.id, game_short_name='spikyfish3')
+    try:
+        bot.send_game(call.from_user.id, game_short_name=GamesCallbacks.spikyfish3)
+    except apihelper.ApiTelegramException:
+        logger.error('Игра не зарегистрирована в данном боте, либо указано неверное название игры')
 
 
 def callback_send_game_5(call, bot):
-    bot.send_game(call.from_user.id, game_short_name='basketboy')
+    try:
+        bot.send_game(call.from_user.id, game_short_name=GamesCallbacks.basketboy)
+    except apihelper.ApiTelegramException:
+        logger.error('Игра не зарегистрирована в данном боте, либо указано неверное название игры')
 
 
 def callback_send_game_6(call, bot):
-    bot.send_game(call.from_user.id, game_short_name='gravityninjaemeraldcity')
+    try:
+        bot.send_game(call.from_user.id, game_short_name=GamesCallbacks.gravityninjaemeraldcity)
+    except apihelper.ApiTelegramException:
+        logger.error('Игра не зарегистрирована в данном боте, либо указано неверное название игры')
 
 
 def callback_send_game_7(call, bot):
-    bot.send_game(call.from_user.id, game_short_name='keepitup')
+    try:
+        bot.send_game(call.from_user.id, game_short_name=GamesCallbacks.keepitup)
+    except apihelper.ApiTelegramException:
+        logger.error('Игра не зарегистрирована в данном боте, либо указано неверное название игры')
 
 
 def callback_game_1(call, bot):

@@ -54,8 +54,8 @@ class CallDataParser:
         :return: int - id вопроса
         """
         question_id = int(call_data.split('|')[-1])
-        return question_id \
- \
+        return question_id
+
     @staticmethod
     def get_key_for_path(call_data: str) -> str:
         """

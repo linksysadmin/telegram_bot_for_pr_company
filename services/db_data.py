@@ -15,7 +15,6 @@ def get_user_data_from_db(user_id: int) -> dict:
     Функция принимает telegram_id пользователя
     Args:
         user_id:
-
     Returns:
         A dictionary with the following keys:
         Field Name | Data Type | Description
@@ -102,12 +101,18 @@ def get_sub_directions(direction: str):
     return list_of_sub_directions
 
 
-def check_user_in_database(user_id) -> bool:
+def check_client_in_database(user_id: int) -> bool:
+    user = redis_cache.check_client(user_id)
+    if user:
+        return True
     result_from_db = fetch_all(
         sql='''SELECT id FROM clients WHERE id = %s''',
         params=(user_id,)
     )
-    return bool(len(result_from_db))
+    if result_from_db:
+        redis_cache.add_client(user_id)
+        return True
+    return False
 
 
 def get_user_answer(user_id: int, question_id: int):
@@ -132,13 +137,6 @@ def get_user_list_of_questions_informal_and_answers(user_id: int, directory: str
     questions = [question[0] for question in result_from_db]
     answers = [answer[1] for answer in result_from_db]
     return questions, answers
-
-
-def update_info_about_user_docs_in_db(user_id: int, documents: bool):
-    execute(
-        sql='''UPDATE clients SET documents = %s WHERE id = %s''',
-        params=[(documents, user_id)]
-    )
 
 
 def delete_user_answers_in_section(user_id: int, directory: str, section: str):
@@ -234,3 +232,16 @@ def add_user_answers_to_db(user_id: int, question_id: int, user_response: str):
         sql='''INSERT INTO clients_briefings (client_id, question_id, user_response)
              VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE user_response = VALUES (user_response)''',
         params=[(user_id, question_id, user_response)])
+
+
+def update_info_about_user_docs_in_db(user_id: int, documents: bool) -> None:
+    execute(
+        sql='''UPDATE clients SET documents = %s WHERE id = %s''',
+        params=[(documents, user_id)]
+    )
+
+
+def update_user_status(user_id: int, status: str) -> None:
+    execute(
+        sql='''UPDATE clients SET status = %s WHERE id = %s''',
+        params=[(status, user_id)])
