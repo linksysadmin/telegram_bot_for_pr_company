@@ -2,14 +2,14 @@ import logging
 
 from config import DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_REPORTS, DIR_FOR_OTHER_FILES, DIR_FOR_TECHNICAL_TASKS
 from handlers.commands import ClientCommands
-from handlers.keyboards import remove_keyboard, ClientKeyboards
+from handlers.keyboards import remove_keyboard, ClientKeyboards, OperatorKeyboards
 from handlers.text_messages import TEXT_MESSAGES
 from services.db_data import add_clients_data_to_db, get_question_and_answers_from_db, add_user_answers_to_db, \
-    get_user_answer
+    get_user_answer, update_question_and_answers
 from services.file_handler import save_file
 from services.redis_db import redis_cache
 from services.states import MyStates
-from services.string_parser import CallDataParser
+from services.string_parser import CallDataParser, TextParser
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +114,15 @@ def send_user_answers_to_db(message, bot):
                      reply_markup=ClientKeyboards.questions(message.from_user.id, path=path))
 
 
+def operator_change_question(message, bot):
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        question_id = data['question_id_for_change']
+    question_text, answers_text = TextParser.get_question_and_answers(message.text)
+    update_question_and_answers(question_id, question_text, answers_text)
+    bot.delete_state(message.from_user.id, message.chat.id)
+    bot.send_message(message.chat.id, TEXT_MESSAGES['start_for_operator'], reply_markup=OperatorKeyboards.enter_menu())
+
+
 def download_and_save_file(bot, message, path):
     file_info = bot.get_file(message.document.file_id)
     downloaded_file = bot.download_file(file_info.file_path)
@@ -190,3 +199,9 @@ def phone_incorrect(message, bot):
 def file_incorrect(message, bot):
     """Некорректный файл """
     bot.send_message(message.chat.id, 'Это не файл!')
+
+
+def incorrect_change_question(message, bot):
+    """Некорректный ввод Вопроса и ответов """
+    bot.send_message(message.chat.id, 'Некорректный ввод Вопроса и ответов\n\n'
+                                      'Пример:\nВОПРОС || ОТВЕТ1| ОТВЕТ2| ОТВЕТ3')

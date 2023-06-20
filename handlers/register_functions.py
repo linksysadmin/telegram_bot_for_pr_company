@@ -1,14 +1,13 @@
-from handlers import dialog, clients, documents, operator, games
-from handlers.clients import *
-from handlers.commands import ClientCommands, OperatorCommands, delete_state_
+from handlers import dialog, documents, games
+from handlers.commands import ClientCommands, OperatorCommands
 from handlers.dialog import callback_enter_into_a_dialog, callback_client_info
 from handlers import get_info
-from handlers.operator import callback_get_dialogue_history, callback_menu_directions_of_documents
+from handlers.callback_handlers import OperatorCallbackHandlers, ClientCallbackHandlers, BaseCallbackHandlers
 from services.callbacks import ClientCallbacks, OperatorCallbacks, GamesCallbacks, BaseCallbacks
 from services.filters import CheckPhoneNumber, ContactForm, CheckConsent, CheckFile, CheckClient, \
-    CheckSubDirectory, CheckSection, FinishPoll, NextQuestion, CheckOperator, CheckTextOnlyInMessage,\
-    CheckDocumentInMessage, CheckPhotoInMessage
-from services.states import MyStates
+    CheckSubDirectory, CheckSection, FinishPoll, NextQuestion, CheckOperator, CheckTextOnlyInMessage, \
+    CheckDocumentInMessage, CheckPhotoInMessage, CheckChangeQuestion
+from services.states import MyStates, OperatorStates
 
 
 def registration_filters(bot):
@@ -30,6 +29,7 @@ def registration_filters(bot):
                CheckTextOnlyInMessage(),
                CheckDocumentInMessage(),
                CheckPhotoInMessage(),
+               CheckChangeQuestion(),
                )
 
     for filter_ in FILTERS:
@@ -40,9 +40,10 @@ def registration_commands(bot):
     """   Регистрация команд telegram бота """
     bot.register_message_handler(commands=['start'], callback=OperatorCommands.start, pass_bot=True, operator=True)
     bot.register_message_handler(commands=['start'], callback=ClientCommands.start, pass_bot=True, client=True)
-    bot.register_message_handler(commands=['start'], callback=ClientCommands.start_unauthorized, pass_bot=True, client=False)
+    bot.register_message_handler(commands=['start'], callback=ClientCommands.start_unauthorized, pass_bot=True,
+                                 client=False)
     bot.register_message_handler(commands=['test'], callback=OperatorCommands.test_, pass_bot=True, operator=True)
-    bot.register_message_handler(commands=['cancel'], state="*", callback=delete_state_, pass_bot=True)
+    bot.register_message_handler(commands=['cancel'], state="*", callback=ClientCommands.cancel_delete_state, pass_bot=True, client=True)
 
 
 def registration_file_handling(bot):
@@ -74,8 +75,8 @@ def registration_file_handling(bot):
 
 def registration_states(bot):
     """   Регистрация состояний пользователя   """
-    bot.register_message_handler(state="*", text=['Отменить'], callback=delete_state_, pass_bot=True)
-    bot.register_message_handler(state="*", text=['К вопросам'], callback=delete_state_, pass_bot=True)
+    bot.register_message_handler(state="*", text=['Отменить'], callback=ClientCommands.cancel_delete_state, pass_bot=True)
+    bot.register_message_handler(state="*", text=['К вопросам'], callback=ClientCommands.cancel_delete_state, pass_bot=True)
     bot.register_message_handler(state=MyStates.request, callback=dialog.send_request_to_operator,
                                  pass_bot=True)
     bot.register_message_handler(state=MyStates.dialogue_with_operator,
@@ -108,6 +109,14 @@ def registration_states(bot):
     bot.register_message_handler(state=MyStates.answer_to_question, callback=get_info.send_user_answers_to_db,
                                  pass_bot=True,
                                  finish_poll=True)
+    bot.register_message_handler(state=OperatorStates.change_question, callback=get_info.operator_change_question,
+                                 pass_bot=True, operator=True, check_question=True)
+    bot.register_message_handler(state=OperatorStates.change_question, callback=get_info.incorrect_change_question,
+                                 pass_bot=True, operator=True, check_question=False)
+    # bot.register_message_handler(state=OperatorStates.add_question, callback=get_info.operator_change_question,
+    #                              pass_bot=True, operator=True, check_question=True)
+    # bot.register_message_handler(state=OperatorStates.add_question, callback=get_info.incorrect_change_question,
+    #                              pass_bot=True, operator=True, check_question=False)
 
 
 def registration_games(bot):
@@ -147,32 +156,43 @@ def registration_games(bot):
 
 def registration_menu_navigation(bot):
     """   Регистрация обработчиков нажатий на клавиатуру   """
-    bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.briefing,
-                                        callback=callback_scenario, pass_bot=True, client=True)
+
+    # GENERAL
+    bot.register_callback_query_handler(func=lambda callback: callback.data == BaseCallbacks.back_to_questions,
+                                        callback=BaseCallbackHandlers.back_to_questions, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data in BaseCallbacks.directory,
+                                        callback=BaseCallbackHandlers.directory, pass_bot=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == BaseCallbacks.briefing,
+                                        callback=BaseCallbackHandlers.briefing, pass_bot=True, client=True)
+
+    # CLIENT
+    bot.register_callback_query_handler(func=lambda callback: callback.data == BaseCallbacks.enter_menu,
+                                        callback=ClientCallbackHandlers.enter_menu, pass_bot=True, client=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.files,
-                                        callback=callback_technical_tasks_and_commercial_offer, pass_bot=True)
+                                        callback=ClientCallbackHandlers.file_types, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.chat,
-                                        callback=callback_chat_with_operator, pass_bot=True)
+                                        callback=ClientCallbackHandlers.chat_with_operator, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.instant_message,
                                         callback=dialog.callback_instant_messaging_service, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.blog,
-                                        callback=callback_blog, pass_bot=True)
-    bot.register_callback_query_handler(func=lambda callback: callback.data in ClientCallbacks.directory,
-                                        callback=callback_directory, pass_bot=True)
+                                        callback=ClientCallbackHandlers.blog, pass_bot=True)
 
     bot.register_callback_query_handler(func=lambda callback: callback.data,
-                                        callback=callback_section, pass_bot=True,
+                                        callback=BaseCallbackHandlers.section, pass_bot=True,
                                         section=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data,
-                                        callback=callback_sub_directory, pass_bot=True,
+                                        callback=BaseCallbackHandlers.sub_directory, pass_bot=True,
                                         sub_directory=True)
+    bot.register_callback_query_handler(func=lambda callback: callback.data == BaseCallbacks.cancel_to_directions,
+                                        callback=BaseCallbackHandlers.cancel_to_directions, pass_bot=True)
 
-    bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.back_to_questions,
-                                        callback=callback_back_to_questions, pass_bot=True)
-    bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.enter_menu,
-                                        callback=callback_cancel_from_inline_menu, pass_bot=True)
-    bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.cancel_to_directions,
-                                        callback=callback_cancel_to_directions, pass_bot=True)
+
+    # OPERATOR
+    bot.register_callback_query_handler(func=lambda callback: callback.data == BaseCallbacks.enter_menu,
+                                        callback=OperatorCallbackHandlers.enter_menu, pass_bot=True, operator=True)
+    bot.register_callback_query_handler(
+        func=lambda callback: BaseCallbacks.parse_callback(callback.data) == BaseCallbacks.get_documents,
+        callback=OperatorCallbackHandlers.file_types, pass_bot=True, operator=True)
 
     bot.register_callback_query_handler(
         func=lambda callback: OperatorCallbacks.parse_callback(callback.data) == OperatorCallbacks.client_info,
@@ -182,116 +202,101 @@ def registration_menu_navigation(bot):
         callback=callback_enter_into_a_dialog, pass_bot=True)
     bot.register_callback_query_handler(
         func=lambda callback: OperatorCallbacks.parse_callback(callback.data) == OperatorCallbacks.dialog_history,
-        callback=callback_get_dialogue_history, pass_bot=True)
-    bot.register_callback_query_handler(
-        func=lambda callback: BaseCallbacks.parse_callback(callback.data) == BaseCallbacks.get_documents,
-        callback=callback_menu_directions_of_documents, pass_bot=True)
+        callback=OperatorCallbackHandlers.get_dialogue_history, pass_bot=True)
 
-    bot.register_callback_query_handler(
-        func=lambda callback: BaseCallbacks.parse_callback(callback.data) == BaseCallbacks.get_documents,
-        callback=dialog.callback_operator_left_dialog, pass_bot=True,
-        operator=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.change_answer,
-                                        callback=callback_for_change_answer, pass_bot=True)
+                                        callback=ClientCallbackHandlers.change_answer, pass_bot=True)
 
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.technical_tasks,
-                                        callback=callback_technical_tasks, pass_bot=True)
+                                        callback=ClientCallbackHandlers.technical_tasks, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.commercial_offers,
-                                        callback=callback_commercial_offer, pass_bot=True)
+                                        callback=ClientCallbackHandlers.commercial_offer, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.reports,
-                                        callback=callback_reports, pass_bot=True)
+                                        callback=ClientCallbackHandlers.reports, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientCallbacks.documents,
-                                        callback=callback_documents, pass_bot=True)
+                                        callback=ClientCallbackHandlers.documents, pass_bot=True)
 
     bot.register_callback_query_handler(
         func=lambda callback: callback.data == OperatorCallbacks.upload_file_in_dialogue,
-        callback=operator.callback_upload_file_in_dialogue, pass_bot=True)
+        callback=OperatorCallbackHandlers.upload_file_in_dialogue, pass_bot=True)
     bot.register_callback_query_handler(
-        func=lambda callback: BaseCallbacks.parse_callback(callback.data) == ClientCallbacks.question,
-        callback=callback_for_questions, pass_bot=True,
-        client=True)
+        func=lambda callback: BaseCallbacks.parse_callback(callback.data) == BaseCallbacks.question,
+        callback=ClientCallbackHandlers.questions, pass_bot=True, client=True)
     bot.register_callback_query_handler(
-        func=lambda callback: BaseCallbacks.parse_callback(callback.data) == ClientCallbacks.question,
-        callback=callback_for_registration, pass_bot=True,
-        client=False)
+        func=lambda callback: BaseCallbacks.parse_callback(callback.data) == BaseCallbacks.question,
+        callback=OperatorCallbackHandlers.change_question, pass_bot=True, operator=True)
     bot.register_callback_query_handler(
         func=lambda callback: BaseCallbacks.parse_callback(callback.data) == ClientCallbacks.gen_tech_exercise,
-        callback=documents.callback_for_registration_technical_exercise,
-        pass_bot=True)
-    bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorCallbacks.menu,
-                                        callback=operator.callback_cancel_to_enter_menu_for_operator,
-                                        pass_bot=True)
+        callback=documents.callback_for_registration_technical_exercise, pass_bot=True)
+
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorCallbacks.upload_file,
-                                        callback=operator.callback_upload_file, pass_bot=True)
+                                        callback=OperatorCallbackHandlers.upload_file, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorCallbacks.menu_in_dialogue,
-                                        callback=operator.callback_cancel_to_enter_menu_in_dialogue,
-                                        pass_bot=True)
+                                        callback=OperatorCallbackHandlers.enter_menu_in_dialogue, pass_bot=True)
     bot.register_callback_query_handler(
         func=lambda callback: BaseCallbacks.parse_callback(callback.data) == OperatorCallbacks.queue,
-        callback=operator.callback_queue, pass_bot=True)
+        callback=OperatorCallbackHandlers.queue, pass_bot=True)
 
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorCallbacks.requests,
-                                        callback=operator.callback_requests_for_operator, pass_bot=True)
+                                        callback=OperatorCallbackHandlers.requests, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorCallbacks.clients,
-                                        callback=operator.callback_clients_for_operator, pass_bot=True)
+                                        callback=OperatorCallbackHandlers.clients, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorCallbacks.tasks,
-                                        callback=operator.callback_tasks_for_operator, pass_bot=True)
+                                        callback=OperatorCallbackHandlers.tasks, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorCallbacks.settings,
-                                        callback=operator.callback_settings_for_operator, pass_bot=True)
+                                        callback=OperatorCallbackHandlers.settings, pass_bot=True)
 
     bot.register_callback_query_handler(
         func=lambda callback: BaseCallbacks.parse_callback(callback.data) == BaseCallbacks.get_file,
         callback=documents.callback_get_file_for_operator_in_dialogue,
-        state=MyStates.dialogue_with_client, pass_bot=True,
-        operator=True)
+        state=MyStates.dialogue_with_client, pass_bot=True, operator=True)
     bot.register_callback_query_handler(
         func=lambda callback: BaseCallbacks.parse_callback(callback.data) == BaseCallbacks.get_file,
-        callback=documents.callback_get_file_for_operator, pass_bot=True,
-        operator=True)
+        callback=documents.callback_get_file_for_operator, pass_bot=True, operator=True)
     bot.register_callback_query_handler(
         func=lambda callback: BaseCallbacks.parse_callback(callback.data) == BaseCallbacks.get_file,
-        callback=documents.callback_get_file_for_client, pass_bot=True,
-        operator=False)
+        callback=documents.callback_get_file_for_client, pass_bot=True, operator=False)
     bot.register_callback_query_handler(
         func=lambda callback: callback.data == OperatorCallbacks.tech_tasks_in_dialogue,
-        callback=operator.callback_technical_tasks_for_operator_in_dialogue,
-        pass_bot=True)
+        callback=OperatorCallbackHandlers.technical_tasks_in_dialogue, pass_bot=True)
     bot.register_callback_query_handler(
         func=lambda callback: callback.data == OperatorCallbacks.com_offers_in_dialogue,
-        callback=operator.callback_commercial_offers_for_operator_in_dialogue,
+        callback=OperatorCallbackHandlers.commercial_offers_in_dialogue,
         pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorCallbacks.reports_in_dialogue,
-                                        callback=operator.callback_reports_for_operator_in_dialogue,
-                                        pass_bot=True)
+                                        callback=OperatorCallbackHandlers.reports_in_dialogue, pass_bot=True)
     bot.register_callback_query_handler(
         func=lambda callback: callback.data == OperatorCallbacks.other_documents_in_dialogue,
-        callback=operator.callback_other_documents_for_operator_in_dialogue,
+        callback=OperatorCallbackHandlers.other_documents_in_dialogue,
         pass_bot=True)
     bot.register_callback_query_handler(
         func=lambda callback: BaseCallbacks.parse_callback(callback.data) == OperatorCallbacks.show_tech_tasks,
-        callback=operator.callback_client_technical_tasks_for_operator,
+        callback=OperatorCallbackHandlers.client_technical_tasks,
         pass_bot=True)
     bot.register_callback_query_handler(
         func=lambda callback: BaseCallbacks.parse_callback(callback.data) == OperatorCallbacks.show_com_offers,
-        callback=operator.callback_client_commercial_offers_for_operator,
+        callback=OperatorCallbackHandlers.client_commercial_offers,
         pass_bot=True)
     bot.register_callback_query_handler(
         func=lambda callback: BaseCallbacks.parse_callback(callback.data) == OperatorCallbacks.show_reports,
-        callback=operator.callback_client_reports_for_operator,
+        callback=OperatorCallbackHandlers.client_reports,
         pass_bot=True)
     bot.register_callback_query_handler(
         func=lambda callback: BaseCallbacks.parse_callback(callback.data) == OperatorCallbacks.show_other_documents,
-        callback=operator.callback_client_other_documents_for_operator,
+        callback=OperatorCallbackHandlers.client_other_documents,
         pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorCallbacks.end_dialogue,
                                         callback=dialog.callback_operator_left_dialog, pass_bot=True,
                                         operator=True)
     bot.register_callback_query_handler(
-        func=lambda callback: ClientCallbacks.evaluate or ClientCallbacks.do_not_evaluate == callback.data,
-        callback=clients.callback_for_grade, pass_bot=True)
-    bot.register_callback_query_handler(
         func=lambda callback: callback.data == OperatorCallbacks.change_question,
-        callback=clients.callback_scenario, pass_bot=True, operator=True)
+        callback=BaseCallbackHandlers.briefing, pass_bot=True, operator=True)
+    bot.register_callback_query_handler(
+        func=lambda callback: callback.data == OperatorCallbacks.add_question,
+        callback=OperatorCallbackHandlers.briefing, pass_bot=True, operator=True)
+    bot.register_callback_query_handler(
+        func=lambda callback: ClientCallbacks.evaluate or ClientCallbacks.do_not_evaluate == callback.data,
+        callback=ClientCallbackHandlers.grade, pass_bot=True)
 
 
 def registration_all_functions_for_telegram_bot(bot):

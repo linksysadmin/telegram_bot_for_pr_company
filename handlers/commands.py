@@ -48,6 +48,36 @@ class ClientCommands:
         bot.send_message(message.chat.id, TEXT_MESSAGES['start_unauthorized'])
         logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
+    @staticmethod
+    def cancel_delete_state(message, bot):
+        """ Выход из STATE """
+        print(message)
+        user_id = message.from_user.id
+        state = bot.get_state(user_id)
+        match state:
+            case 'MyStates:answer_to_question':
+                bot.delete_state(user_id)
+                if redis_cache.get_user_answers(user=user_id):
+                    redis_cache.delete_user_answers(user=user_id)
+                path = redis_cache.get_keyboard_for_questions(user_id)
+                remove_keyboard(message, bot, 'Отменено')
+                bot.send_message(user_id, 'Выберите вопрос:',
+                                 reply_markup=ClientKeyboards.questions(user_id, path=path))
+                return
+            case 'MyStates:name' | 'MyStates:phone_number' | 'MyStates:company' | 'MyStates:website':
+                if state == 'MyStates:phone_number':
+                    remove_keyboard(message, bot, 'Отменено')
+                bot.set_state(user_id, MyStates.name)
+                bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'])
+                return
+            case None:
+                return
+        remove_keyboard(message, bot, 'Отменено')
+        bot.send_message(message.chat.id, 'Главное меню',
+                         reply_markup=ClientKeyboards.enter_menu())
+        bot.delete_state(user_id)
+        logger.info(f'State пользователя удалён -- {bot.get_state(user_id)}')
+
 
 class OperatorCommands:
     @staticmethod
@@ -98,30 +128,3 @@ class PartnerCommands:
         logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
 
-def delete_state_(message, bot):
-    """ Выход из STATE """
-    user_id = message.from_user.id
-    state = bot.get_state(user_id)
-    match state:
-        case 'MyStates:answer_to_question':
-            bot.delete_state(user_id)
-            if redis_cache.get_user_answers(user=user_id):
-                redis_cache.delete_user_answers(user=user_id)
-            path = redis_cache.get_keyboard_for_questions(user_id)
-            remove_keyboard(message, bot, 'Отменено')
-            bot.send_message(user_id, 'Выберите вопрос:',
-                             reply_markup=ClientKeyboards.questions(user_id, path=path))
-            return
-        case 'MyStates:name' | 'MyStates:phone_number' | 'MyStates:company' | 'MyStates:website':
-            if state == 'MyStates:phone_number':
-                remove_keyboard(message, bot, 'Отменено')
-            bot.set_state(user_id, MyStates.name)
-            bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'])
-            return
-        case None:
-            return
-    remove_keyboard(message, bot, 'Отменено')
-    bot.send_message(message.chat.id, 'Главное меню',
-                     reply_markup=ClientKeyboards.enter_menu())
-    bot.delete_state(user_id)
-    logger.info(f'State пользователя удалён -- {bot.get_state(user_id)}')

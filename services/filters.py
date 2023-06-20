@@ -137,3 +137,14 @@ class CheckFile(telebot.custom_filters.SimpleCustomFilter):
             return True
         else:
             return False
+
+
+class CheckChangeQuestion(telebot.custom_filters.SimpleCustomFilter):
+    key = 'check_question'
+
+    def check(self, message):
+        parts = message.text.split('||')
+        if len(parts) == 2:
+            return True
+        else:
+            return False

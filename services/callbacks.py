@@ -6,8 +6,14 @@ logger = logging.getLogger(__name__)
 
 
 class BaseCallbacks:
+    enter_menu = 'enter_menu'
+    briefing = "briefing"
+    directory = get_directories()
     get_file = 'get|file|'
     get_documents = 'get_documents|'
+    question = 'question|'
+    cancel_to_directions = 'cancel_to_directions'
+    back_to_questions = 'back_to_questions'
 
     @staticmethod
     def parse_callback(data: str):
@@ -21,17 +27,13 @@ class BaseCallbacks:
             return data
 
 
-class ClientCallbacks(BaseCallbacks):
-    briefing = "scenario"
+class ClientCallbacks():
     files = 'files'
     chat = 'chat'
     instant_message = 'instant_message'
     blog = 'blog'
     games = 'games'
-    directory = get_directories()
-    cancel_to_directions = 'cancel_to_directions'
-    back_to_questions = 'back_to_questions'
-    enter_menu = 'enter_menu'
+
     change_answer = 'change_answer'
     technical_tasks = 'technical_tasks'
     commercial_offers = 'commercial_offers'
@@ -39,7 +41,6 @@ class ClientCallbacks(BaseCallbacks):
     documents = 'documents'
     evaluate = 'client_grade_yes'
     do_not_evaluate = 'client_grade_no'
-    question = 'question|'
     gen_tech_exercise = 'tex|'
 
 
@@ -55,7 +56,6 @@ class GamesCallbacks:
 
 class OperatorCallbacks(BaseCallbacks):
     enter_dialog = "enter_into_a_dialog|"
-    menu = 'operator_menu'
     menu_in_dialogue = 'operator_menu_in_dialogue'
     queue = 'queue|'
     requests = 'requests'
@@ -77,4 +77,3 @@ class OperatorCallbacks(BaseCallbacks):
     show_other_documents = 'OD_operator|'
     dialog_history = 'dialogue_history|'
     end_dialogue = 'end_the_dialogue'
-

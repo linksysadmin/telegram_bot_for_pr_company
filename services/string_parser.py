@@ -1,4 +1,7 @@
+import logging
 from typing import Tuple, Union
+
+logger = logging.getLogger(__name__)
 
 
 class CallDataParser:
@@ -90,3 +93,26 @@ class CallDataParser:
         """
         filename = path.split('/')[-1]
         return filename
+
+
+class TextParser:
+    @staticmethod
+    def get_question_and_answers(text: str) -> Tuple | None:
+        """
+        Принимает строку в формате Вопрос || Ответ1| Ответ2 и извлекает текст вопроса
+
+        :param text: str
+        :return: (question, answers)
+        """
+        try:
+            question = text.split('||')[0]
+            answers = text.split('||')[1]
+            return question, answers
+        except IndexError:
+            logger.warning('Не установлен разделитель: ||')
+            return
+
+
+if __name__ == '__main__':
+    x, z = TextParser.get_question_and_answers('wafefawe')
+    print(x, z)

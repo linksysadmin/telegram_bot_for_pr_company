@@ -2,7 +2,7 @@ import logging
 
 from telebot import types
 
-from services.callbacks import ClientCallbacks, GamesCallbacks, OperatorCallbacks
+from services.callbacks import ClientCallbacks, GamesCallbacks, OperatorCallbacks, BaseCallbacks
 from services.db_data import get_directories, \
     get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers, \
     get_users_data_from_db
@@ -14,49 +14,49 @@ logger = logging.getLogger(__name__)
 
 class GeneralKeyboards:
     @staticmethod
-    def directions():
+    def directions() -> types.InlineKeyboardMarkup:
         logger.info(f'Клавиатура: directions')
         keyboard = types.InlineKeyboardMarkup()
         list_of_directions = get_directories()
         for dir_ in list_of_directions:
             keyboard.add(types.InlineKeyboardButton(text=dir_, callback_data=dir_))
-        cancel = types.InlineKeyboardButton(text='Назад', callback_data=ClientCallbacks.enter_menu)
+        cancel = types.InlineKeyboardButton(text='Назад', callback_data=BaseCallbacks.enter_menu)
         keyboard.add(cancel)
         return keyboard
 
     @staticmethod
-    def sub_directions(direction, list_of_sub_directions):
+    def sub_directions(direction, list_of_sub_directions) -> types.InlineKeyboardMarkup:
         logger.info(f'Клавиатура: sub_directions')
         keyboard = types.InlineKeyboardMarkup()
         for sub_direction in list_of_sub_directions:
             keyboard.add(
                 types.InlineKeyboardButton(text=sub_direction, callback_data=f'{direction}|{sub_direction}'))
-        cancel = types.InlineKeyboardButton(text='Назад', callback_data=ClientCallbacks.cancel_to_directions)
-        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=ClientCallbacks.enter_menu)
+        cancel = types.InlineKeyboardButton(text='Назад', callback_data=BaseCallbacks.cancel_to_directions)
+        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=BaseCallbacks.enter_menu)
         keyboard.add(cancel, main_menu)
         return keyboard
 
     @staticmethod
-    def sections(direction, list_of_sections):
+    def sections(direction, list_of_sections) -> types.InlineKeyboardMarkup:
         logger.info(f'Клавиатура: sections')
         keyboard = types.InlineKeyboardMarkup()
         for section in list_of_sections:
             keyboard.add(types.InlineKeyboardButton(text=section, callback_data=f'{direction}|{section}'))
-        cancel = types.InlineKeyboardButton(text='Назад', callback_data=ClientCallbacks.cancel_to_directions)
-        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=ClientCallbacks.enter_menu)
+        cancel = types.InlineKeyboardButton(text='Назад', callback_data=BaseCallbacks.cancel_to_directions)
+        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=BaseCallbacks.enter_menu)
         keyboard.add(cancel, main_menu)
         return keyboard
 
     @staticmethod
-    def sections_from_subcategory(path):
+    def sections_from_subcategory(path: str) -> types.InlineKeyboardMarkup:
         logger.info(f'Клавиатура: sections_from_subcategory')
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         dir_, sub_dir = CallDataParser.get_dir_and_sub_dir(path)
         list_of_subcategories = get_sections_from_db(dir_, sub_dir)
         for section in list_of_subcategories:
             keyboard.add(types.InlineKeyboardButton(text=section, callback_data=f'{dir_}|{sub_dir}|{section}'))
-        cancel = types.InlineKeyboardButton(text='Назад', callback_data=ClientCallbacks.cancel_to_directions)
-        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=ClientCallbacks.enter_menu)
+        cancel = types.InlineKeyboardButton(text='Назад', callback_data=BaseCallbacks.cancel_to_directions)
+        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=BaseCallbacks.enter_menu)
         keyboard.add(cancel, main_menu)
         return keyboard
 
@@ -66,7 +66,7 @@ class ClientKeyboards(GeneralKeyboards):
     def enter_menu(doc=False):
         """Keyboard for main menu"""
         keyboard = types.InlineKeyboardMarkup(row_width=True)
-        key1 = types.InlineKeyboardButton(text='📋 Сформировать Тех. Задание', callback_data=ClientCallbacks.briefing)
+        key1 = types.InlineKeyboardButton(text='📋 Сформировать Тех. Задание', callback_data=BaseCallbacks.briefing)
         key2 = types.InlineKeyboardButton(text='💬 Поставить задачу', callback_data=ClientCallbacks.instant_message)
         key3 = types.InlineKeyboardButton(text='📝 Файлы',
                                           callback_data=ClientCallbacks.files)
@@ -88,7 +88,7 @@ class ClientKeyboards(GeneralKeyboards):
                                           callback_data=ClientCallbacks.commercial_offers)
         key3 = types.InlineKeyboardButton(text='📈 Отчеты', callback_data=ClientCallbacks.reports)
         key4 = types.InlineKeyboardButton(text='📇 Документы', callback_data=ClientCallbacks.documents)
-        key5 = types.InlineKeyboardButton(text='Назад', callback_data=ClientCallbacks.enter_menu)
+        key5 = types.InlineKeyboardButton(text='Назад', callback_data=BaseCallbacks.enter_menu)
         keyboard.add(key1, key2, key3, key4, key5)
         return keyboard
 
@@ -96,7 +96,7 @@ class ClientKeyboards(GeneralKeyboards):
     def files(dict_path_to_files):
         keyboard = types.InlineKeyboardMarkup(row_width=True)
         cancel = types.InlineKeyboardButton(text='Назад', callback_data=ClientCallbacks.files)
-        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=ClientCallbacks.enter_menu)
+        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=BaseCallbacks.enter_menu)
         if dict_path_to_files is None:
             keyboard.row(cancel, main_menu)
             return keyboard
@@ -104,7 +104,7 @@ class ClientKeyboards(GeneralKeyboards):
             for key, value in dict_path_to_files.items():
                 filename = CallDataParser.get_file_name(value)
                 keyboard.add(
-                    types.InlineKeyboardButton(text=f'{filename}', callback_data=f'{ClientCallbacks.get_file}{key}'))
+                    types.InlineKeyboardButton(text=f'{filename}', callback_data=f'{BaseCallbacks.get_file}{key}'))
             keyboard.row(cancel, main_menu)
             return keyboard
 
@@ -121,19 +121,18 @@ class ClientKeyboards(GeneralKeyboards):
             if question_id in list_of_questions_id_from_user_answers:
                 buttons.append(
                     types.InlineKeyboardButton(text=f'✅ {number_of_question}',
-                                               callback_data=f'{ClientCallbacks.question}{question_id}'))
+                                               callback_data=f'{BaseCallbacks.question}{question_id}'))
             else:
                 buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {number_of_question}',
-                                                          callback_data=f'{ClientCallbacks.question}{question_id}'))
+                                                          callback_data=f'{BaseCallbacks.question}{question_id}'))
         max_question_id = list(dict_of_questions.keys())[-1]
         redis_cache.set_max_question_id(user_id, max_question_id)
         button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
         for row in button_rows:
             keyboard.row(*row)
-        technical_exercise = types.InlineKeyboardButton(text='Сформировать ТЗ',
-                                                        callback_data=f'{ClientCallbacks.gen_tech_exercise}{path}')
-        cancel = types.InlineKeyboardButton(text='Назад', callback_data=ClientCallbacks.cancel_to_directions)
-        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=ClientCallbacks.enter_menu)
+        technical_exercise = types.InlineKeyboardButton(text='Сформировать ТЗ',  callback_data=f'{ClientCallbacks.gen_tech_exercise}{path}')
+        cancel = types.InlineKeyboardButton(text='Назад', callback_data=BaseCallbacks.cancel_to_directions)
+        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=BaseCallbacks.enter_menu)
         keyboard.add(technical_exercise, cancel, main_menu)
         return keyboard
 
@@ -151,8 +150,8 @@ class ClientKeyboards(GeneralKeyboards):
     def change_answer():
         keyboard = types.InlineKeyboardMarkup(row_width=True)
         change = types.InlineKeyboardButton(text='Изменить ответ', callback_data=ClientCallbacks.change_answer)
-        cancel = types.InlineKeyboardButton(text='К вопросам', callback_data=ClientCallbacks.back_to_questions)
-        menu = types.InlineKeyboardButton(text='Главное меню', callback_data=ClientCallbacks.enter_menu)
+        cancel = types.InlineKeyboardButton(text='К вопросам', callback_data=BaseCallbacks.back_to_questions)
+        menu = types.InlineKeyboardButton(text='Главное меню', callback_data=BaseCallbacks.enter_menu)
         keyboard.add(change, cancel, menu)
         return keyboard
 
@@ -205,7 +204,7 @@ class ClientKeyboards(GeneralKeyboards):
         keyboard = types.InlineKeyboardMarkup(row_width=True)
         key1 = types.InlineKeyboardButton(text='Да', callback_data=ClientCallbacks.evaluate)
         key2 = types.InlineKeyboardButton(text='Пока нет', callback_data=ClientCallbacks.do_not_evaluate)
-        menu = types.InlineKeyboardButton(text='Главное меню', callback_data=ClientCallbacks.enter_menu)
+        menu = types.InlineKeyboardButton(text='Главное меню', callback_data=BaseCallbacks.enter_menu)
         keyboard.add(key1, key2, menu)
         return keyboard
 
@@ -220,7 +219,7 @@ class ClientKeyboards(GeneralKeyboards):
         game6 = types.InlineKeyboardButton(text='Gravity Ninja: Emerald City',
                                            callback_data=GamesCallbacks.gravityninjaemeraldcity)
         game7 = types.InlineKeyboardButton(text='Keep it UP', callback_data=GamesCallbacks.keepitup)
-        main_menu = types.InlineKeyboardButton(text='Назад', callback_data=ClientCallbacks.enter_menu)
+        main_menu = types.InlineKeyboardButton(text='Назад', callback_data=BaseCallbacks.enter_menu)
         keyboard.row(game1, game2, game3)
         keyboard.row(game4, game5, game6)
         keyboard.row(game7, main_menu)
@@ -241,7 +240,7 @@ class OperatorKeyboards(GeneralKeyboards):
     @staticmethod
     def clients(clients, callback_data_prefix):
         keyboard = types.InlineKeyboardMarkup(row_width=True)
-        cancel = types.InlineKeyboardButton(text='Назад', callback_data=OperatorCallbacks.menu)
+        cancel = types.InlineKeyboardButton(text='Назад', callback_data=OperatorCallbacks.enter_menu)
         if not clients:
             keyboard.add(cancel)
             return keyboard
@@ -257,7 +256,7 @@ class OperatorKeyboards(GeneralKeyboards):
         keyboard = types.InlineKeyboardMarkup(row_width=True)
         key1 = types.InlineKeyboardButton(text='Изменить вопрос', callback_data=OperatorCallbacks.change_question)
         key2 = types.InlineKeyboardButton(text='Добавить вопрос', callback_data=OperatorCallbacks.add_question)
-        cancel = types.InlineKeyboardButton(text='Назад', callback_data=OperatorCallbacks.menu)
+        cancel = types.InlineKeyboardButton(text='Назад', callback_data=OperatorCallbacks.enter_menu)
         keyboard.add(key1, key2, cancel)
         return keyboard
 
@@ -270,7 +269,7 @@ class OperatorKeyboards(GeneralKeyboards):
                                                          callback_data=f'{OperatorCallbacks.get_documents}{client_id}')
         insert_into_dialogue = types.InlineKeyboardButton(text='✅Вступить в диалог',
                                                           callback_data=f'{OperatorCallbacks.enter_dialog}{client_id}')
-        cancel = types.InlineKeyboardButton(text='Главное меню', callback_data=OperatorCallbacks.menu)
+        cancel = types.InlineKeyboardButton(text='Главное меню', callback_data=OperatorCallbacks.enter_menu)
 
         keyboard.add(dialogue_history, show_user_documents, insert_into_dialogue, cancel)
         return keyboard
@@ -293,7 +292,7 @@ class OperatorKeyboards(GeneralKeyboards):
     def client_files(dict_of_path_files, in_dialogue=None):
         keyboard = types.InlineKeyboardMarkup(row_width=True)
         callback_1 = OperatorCallbacks.upload_file
-        callback_2 = OperatorCallbacks.menu
+        callback_2 = OperatorCallbacks.enter_menu
         if in_dialogue:
             callback_1 = OperatorCallbacks.upload_file_in_dialogue
             callback_2 = OperatorCallbacks.menu_in_dialogue
@@ -321,8 +320,35 @@ class OperatorKeyboards(GeneralKeyboards):
                                              callback_data=f'{OperatorCallbacks.show_reports}{client_id}')
         documents = types.InlineKeyboardButton(text='Документы',
                                                callback_data=f'{OperatorCallbacks.show_other_documents}{client_id}')
-        cancel = types.InlineKeyboardButton(text='Главное меню', callback_data=OperatorCallbacks.menu)
+        cancel = types.InlineKeyboardButton(text='Главное меню', callback_data=OperatorCallbacks.enter_menu)
         keyboard.add(tech_tasks, commercial_offers, reports, documents, cancel)
+        return keyboard
+
+    @staticmethod
+    def questions(operator_id, path: str):
+        redis_cache.add_keyboard_for_questions(operator_id, path)
+        dir_, sub_dir, section = CallDataParser.get_directory_sub_direction_section(path)
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buttons = []
+        dict_of_questions = get_questions_from_db(dir_, section, sub_dir)
+        for question_id, number_of_question in dict_of_questions.items():
+            buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {number_of_question}',
+                                                      callback_data=f'{BaseCallbacks.question}{question_id}'))
+
+        button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
+        for row in button_rows:
+            keyboard.row(*row)
+        cancel = types.InlineKeyboardButton(text='Назад', callback_data=OperatorCallbacks.cancel_to_directions)
+        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=OperatorCallbacks.enter_menu)
+        keyboard.add(cancel, main_menu)
+        return keyboard
+
+    @staticmethod
+    def change_question():
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        cancel = types.InlineKeyboardButton(text='Назад', callback_data=OperatorCallbacks.back_to_questions)
+        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=OperatorCallbacks.enter_menu)
+        keyboard.add(cancel, main_menu)
         return keyboard
 
 

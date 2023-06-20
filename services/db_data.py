@@ -206,14 +206,36 @@ def get_questions_from_db(direction, section, sub_direction=None) -> Dict:
 
 
 def get_question_and_answers_from_db(id_question: int) -> tuple:
-    all_question_and_answers = fetch_all(sql='SELECT question_text, answer FROM questions WHERE id = %s',
+    question = None
+    question_and_answers = fetch_all(sql='SELECT question_text, answer FROM questions WHERE id = %s',
                                          params=(id_question,))
-    question = [i[0] for i in all_question_and_answers][0]
+
     try:
-        answers = [i[1].split('| ') for i in all_question_and_answers][0]
+        question = question_and_answers[0][0]
+        answers = [i[1].split('| ') for i in question_and_answers][0]
+        return question, answers
+    except IndexError:
+        logger.error(f'Не существует вопрос № {id_question}')
+        return ()
     except AttributeError:
+        logger.warning(f'Нет ответов по-умолчанию на вопрос № {id_question}')
         answers = []
-    return question, answers
+        return question, answers
+
+
+def update_question_and_answers(question_id: int, question: str, answers: str):
+    execute(
+        sql='''UPDATE questions SET question_text = %s, answer = %s WHERE id = %s''',
+        params=[(question, answers, question_id)]
+    )
+
+
+# if __name__ == '__main__':
+    # x, z = get_question_and_answers_from_db(84)
+    # print(x, z)
+    # update_question_and_answers(84, 'fawe', 'aegg | afkoawer | farefaew| aer')
+    # x, z = get_question_and_answers_from_db(84)
+    # print(x, z)
 
 
 def add_clients_data_to_db(user_id: int, name: str, tg_username, phone: str, company: str, website: str):
@@ -245,3 +267,5 @@ def update_user_status(user_id: int, status: str) -> None:
     execute(
         sql='''UPDATE clients SET status = %s WHERE id = %s''',
         params=[(status, user_id)])
+
+
