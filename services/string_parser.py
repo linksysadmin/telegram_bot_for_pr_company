@@ -6,6 +6,21 @@ logger = logging.getLogger(__name__)
 
 class CallDataParser:
     @staticmethod
+    def parse_callback(data: str):
+        try:
+            list_of_callback_parts = data.split('|')
+            len_string_path = len(list_of_callback_parts)
+            if len_string_path == 3 or len_string_path == 4:
+                if list_of_callback_parts[0] == 'tex':
+                    return 'tex|'
+            list_of_callback_parts_without_last_element = list_of_callback_parts[:-1]
+            callback = '|'.join(list_of_callback_parts_without_last_element) + '|'
+            return callback
+        except Exception as e:
+            logger.error(e)
+            return data
+
+    @staticmethod
     def get_directory_sub_direction_section(call_data: str) -> Tuple[str, Union[str, None], str] | Tuple[str, str]:
         """
         Принимает строку из вызова call.data для inline-кнопок,
@@ -94,6 +109,11 @@ class CallDataParser:
         filename = path.split('/')[-1]
         return filename
 
+    @staticmethod
+    def get_next_callback_for_question(question_id: int):
+        return f"question|{question_id + 1}"
+
+
 
 class TextParser:
     @staticmethod
@@ -111,8 +131,3 @@ class TextParser:
         except IndexError:
             logger.warning('Не установлен разделитель: ||')
             return
-
-
-if __name__ == '__main__':
-    x, z = TextParser.get_question_and_answers('wafefawe')
-    print(x, z)

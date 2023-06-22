@@ -70,6 +70,7 @@ class UserType(telebot.custom_filters.SimpleCustomFilter):
         else:
             return False
 
+
 class CheckTextOnlyInMessage(telebot.custom_filters.SimpleCustomFilter):
     key = 'text_only'
 
@@ -118,8 +119,8 @@ class ContactForm(telebot.custom_filters.SimpleCustomFilter):
         return message.contact is not None
 
 
-class FinishPoll(telebot.custom_filters.SimpleCustomFilter):
-    key = 'finish_poll'
+class SendAnswer(telebot.custom_filters.SimpleCustomFilter):
+    key = 'send_answer'
 
     def check(self, message):
         if message.text == '✅ Отправить ответ':
@@ -129,7 +130,7 @@ class FinishPoll(telebot.custom_filters.SimpleCustomFilter):
 
 
 class NextQuestion(telebot.custom_filters.SimpleCustomFilter):
-    key = 'next_question'
+    key = 'text_is_next_question'
 
     def check(self, message):
         if message.text in ['Следующий вопрос']:

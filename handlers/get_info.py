@@ -5,7 +5,7 @@ from handlers.commands import ClientCommands
 from handlers.keyboards import remove_keyboard, ClientKeyboards, OperatorKeyboards
 from handlers.text_messages import TEXT_MESSAGES
 from services.db_data import add_clients_data_to_db, get_question_and_answers_from_db, add_user_answers_to_db, \
-    get_user_answer, update_question_and_answers, get_user_data_from_db
+    get_user_answer, update_question_and_answers, get_users_data
 from services.file_handler import save_file, dialogue_logging
 from services.redis_db import redis_cache
 from services.states import MyStates
@@ -14,62 +14,77 @@ from services.string_parser import CallDataParser, TextParser
 logger = logging.getLogger(__name__)
 
 
-def get_type_of_user(message, bot):
-    USER_TYPE_MAP = {
+class UserRegistration:
+    __USER_TYPE_MAP = {
         'Партнер': 'partners',
         'Клиент': 'clients',
     }
-    bot.add_data(message.from_user.id, message.chat.id, type_of_user=USER_TYPE_MAP[message.text])
-    remove_keyboard(message, bot, 'Отлично! Введите ваше имя:')
-    bot.set_state(message.chat.id, MyStates.name, message.from_user.id)
+
+    @staticmethod
+    def get_type_of_user(message, bot):
+        bot.add_data(message.from_user.id, message.chat.id, type_of_user=UserRegistration.__USER_TYPE_MAP[message.text])
+        remove_keyboard(message, bot, 'Отлично! Введите ваше имя:')
+        bot.set_state(message.chat.id, MyStates.name, message.from_user.id)
+
+    @staticmethod
+    def get_user_name(message, bot):
+        """ STATE 1 Получение имени от пользователя """
+        bot.add_data(message.from_user.id, message.chat.id, name=message.text, tg_username=message.from_user.username)
+        bot.send_message(message.chat.id, 'Укажите номер вашего телефона\n\nВы можете нажать клавишу "Отправить номер'
+                                          ' телефона" для отправки номера 📲', reply_markup=ClientKeyboards.send_phone())
+        bot.set_state(message.chat.id, MyStates.phone_number, message.from_user.id)
+        logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
+
+    @staticmethod
+    def get_user_phone(message, bot):
+        """ STATE 2 - Получение номера телефона от пользователя """
+        phone = message.text
+        if message.contact is not None:
+            phone = message.contact.phone_number
+        bot.add_data(message.from_user.id, message.chat.id, phone=phone)
+        remove_keyboard(message, bot, 'Укажите ваш Веб-сайт')
+        bot.set_state(message.chat.id, MyStates.website, message.from_user.id)
+        logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
+
+    @staticmethod
+    def get_user_website(message, bot):
+        """ STATE 3 - Получение website от пользователя """
+        website = message.text
+        bot.add_data(message.from_user.id, message.chat.id, website=website)
+        bot.send_message(message.chat.id, 'Укажите название вашей компании©️')
+        bot.set_state(message.chat.id, MyStates.company, message.from_user.id)
+        logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
+
+    @staticmethod
+    def get_user_company(message, bot):
+        """ STATE 4 - Получение компании от пользователя и отправка данных """
+        user_id = message.from_user.id
+        company = message.text
+        with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+            logger.info(f'Данные, которые ввел пользователь: {data}')
+            table = data['type_of_user']
+            name = data['name']
+            tg_username = data['tg_username']
+            phone = data['phone']
+            website = data['website']
+            add_clients_data_to_db(table, user_id, name, tg_username, phone, company, website)
+        bot.delete_state(message.from_user.id, message.chat.id)
+        bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=name,
+                                                                        company=message.text),
+                         reply_markup=ClientKeyboards.enter_menu())
+        logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
+
+    @staticmethod
+    def user_type_incorrect(message, bot):
+        bot.send_message(message.chat.id, 'Выберите тип пользователя из предложенных вариантов.')
+
+    @staticmethod
+    def phone_incorrect(message, bot):
+        bot.send_message(message.chat.id, 'Некорректный ввод.\nВведите в формате:\n\n"+7XXXXXXXXXX",\n'
+                                          '8XXXXXXXXXX\n9XXXXXXXXX\n\nПример: 89953423452')
 
 
-def get_user_name(message, bot):
-    """ STATE 1 Получение имени от пользователя """
-    bot.add_data(message.from_user.id, message.chat.id, name=message.text, tg_username=message.from_user.username)
-    bot.send_message(message.chat.id, 'Укажите номер вашего телефона\n\nВы можете нажать клавишу "Отправить номер'
-                                      ' телефона" для отправки номера 📲', reply_markup=ClientKeyboards.send_phone())
-    bot.set_state(message.chat.id, MyStates.phone_number, message.from_user.id)
-    logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
-
-def get_user_phone(message, bot):
-    """ STATE 2 - Получение номера телефона от пользователя """
-    phone = message.text
-    if message.contact is not None:
-        phone = message.contact.phone_number
-    bot.add_data(message.from_user.id, message.chat.id, phone=phone)
-    remove_keyboard(message, bot, 'Укажите ваш Веб-сайт')
-    bot.set_state(message.chat.id, MyStates.website, message.from_user.id)
-    logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
-
-
-def get_user_website(message, bot):
-    """ STATE 3 - Получение website от пользователя """
-    website = message.text
-    bot.add_data(message.from_user.id, message.chat.id, website=website)
-    bot.send_message(message.chat.id, 'Укажите название вашей компании©️')
-    bot.set_state(message.chat.id, MyStates.company, message.from_user.id)
-    logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
-
-
-def get_user_company(message, bot):
-    """ STATE 4 - Получение компании от пользователя и отправка данных """
-    user_id = message.from_user.id
-    company = message.text
-    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        logger.info(f'Данные, которые ввел пользователь: {data}')
-        table = data['type_of_user']
-        name = data['name']
-        tg_username = data['tg_username']
-        phone = data['phone']
-        website = data['website']
-        add_clients_data_to_db(table, user_id, name, tg_username, phone, company, website)
-    bot.delete_state(message.from_user.id, message.chat.id)
-    bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=name,
-                                                                    company=message.text),
-                     reply_markup=ClientKeyboards.enter_menu())
-    logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
 
 def get_answer_from_user(message, bot):
@@ -201,14 +216,6 @@ def get_other_file_from_dialogue(message, bot):
     bot.set_state(message.from_user.id, MyStates.dialogue_with_client)
 
 
-def user_type_incorrect(message, bot):
-    bot.send_message(message.chat.id, 'Выберите тип пользователя из предложенных вариантов.')
-
-
-def phone_incorrect(message, bot):
-    bot.send_message(message.chat.id, 'Некорректный ввод.\nВведите в формате:\n\n"+7XXXXXXXXXX",\n'
-                                      '8XXXXXXXXXX\n9XXXXXXXXX\n\nПример: 89953423452')
-
 
 def file_incorrect(message, bot):
     bot.send_message(message.chat.id, 'Это не файл!')
@@ -220,55 +227,56 @@ def incorrect_change_question(message, bot):
 
 
 
-def send_request_to_operator(message, bot):
-    bot.send_message(message.from_user.id, f'Подождите пожалуйста пока оператор к вам присоединиться...')
+class DialogWithOperator:
+    @staticmethod
+    def send_request_to_operator(message, bot):
+        bot.send_message(message.from_user.id, f'Подождите пожалуйста пока оператор к вам присоединиться...')
 
+    @staticmethod
+    def send_message_to_client(message, bot):
+        client_id = redis_cache.get_first_client_from_queue()
+        log_dialogue = dialogue_logging(client_id)
+        bot.send_message(client_id, f'💬Сообщение от оператора:\n\n{message.text}')
+        log_dialogue.info(f'Сообщение от оператора: {message.text}')
 
-def send_message_to_client(message, bot):
-    client_id = redis_cache.get_first_client_from_queue()
-    log_dialogue = dialogue_logging(client_id)
-    bot.send_message(client_id, f'💬Сообщение от оператора:\n\n{message.text}')
-    log_dialogue.info(f'Сообщение от оператора: {message.text}')
+    @staticmethod
+    def send_document_to_client(message, bot):
+        client_id = redis_cache.get_first_client_from_queue()
+        log_dialogue = dialogue_logging(client_id)
+        bot.send_document(client_id, document=message.document.file_id)
+        log_dialogue.info('Оператор отправил файл')
 
+    @staticmethod
+    def send_photo_to_client(message, bot):
+        client_id = redis_cache.get_first_client_from_queue()
+        log_dialogue = dialogue_logging(client_id)
+        photo_id = message.photo[-1].file_id
+        bot.send_photo(client_id, photo=photo_id)
+        log_dialogue.info('Оператор отправил картинку')
 
-def send_document_to_client(message, bot):
-    client_id = redis_cache.get_first_client_from_queue()
-    log_dialogue = dialogue_logging(client_id)
-    bot.send_document(client_id, document=message.document.file_id)
-    log_dialogue.info('Оператор отправил файл')
+    @staticmethod
+    def send_message_to_operator(message, bot):
+        user_id = message.from_user.id
+        user_data = get_users_data(user_id)
+        log_dialogue = dialogue_logging(user_id)
+        log_dialogue.info(f'{user_data["company"]}|Сообщение от {user_data["name"]}: {message.text}')
+        bot.send_message(OPERATOR_ID, f'Вы общаетесь: {user_data["name"]}\n'
+                                      f'Компания: {user_data["company"]}\n'
+                                      f'Телефон: {user_data["phone"]}\n\n'
+                                      f'Сообщение:\n{message.text}',
+                         reply_markup=OperatorKeyboards.menu_in_dialogue())
 
+    @staticmethod
+    def send_document_to_operator(message, bot):
+        client_id = message.from_user.id
+        log_dialogue = dialogue_logging(client_id)
+        bot.send_document(OPERATOR_ID, document=message.document.file_id)
+        log_dialogue.info('Клиент отправил файл')
 
-def send_photo_to_client(message, bot):
-    client_id = redis_cache.get_first_client_from_queue()
-    log_dialogue = dialogue_logging(client_id)
-    photo_id = message.photo[-1].file_id
-    bot.send_photo(client_id, photo=photo_id)
-    log_dialogue.info('Оператор отправил картинку')
-
-
-def send_message_to_operator(message, bot):
-    client_id = message.from_user.id
-    user_data = get_user_data_from_db(client_id)
-    log_dialogue = dialogue_logging(client_id)
-    log_dialogue.info(f'{user_data["company"]}|Сообщение от клиента {user_data["name"]}: {message.text}')
-    bot.send_message(OPERATOR_ID, f'Вы общаетесь с клиентом: {user_data["name"]}\n'
-                                  f'Компания: {user_data["company"]}\n'
-                                  f'Телефон: {user_data["phone"]}\n\n'
-                                  f'Сообщение:\n{message.text}',
-                     reply_markup=OperatorKeyboards.menu_in_dialogue())
-
-
-def send_document_to_operator(message, bot):
-    client_id = message.from_user.id
-    log_dialogue = dialogue_logging(client_id)
-    bot.send_document(OPERATOR_ID, document=message.document.file_id)
-    log_dialogue.info('Клиент отправил файл')
-
-
-def send_photo_to_operator(message, bot):
-    client_id = message.from_user.id
-    log_dialogue = dialogue_logging(client_id)
-    photo_id = message.photo[-1].file_id
-    bot.send_photo(OPERATOR_ID, photo=photo_id)
-    log_dialogue.info('Клиент отправил картинку')
-
+    @staticmethod
+    def send_photo_to_operator(message, bot):
+        client_id = message.from_user.id
+        log_dialogue = dialogue_logging(client_id)
+        photo_id = message.photo[-1].file_id
+        bot.send_photo(OPERATOR_ID, photo=photo_id)
+        log_dialogue.info('Клиент отправил картинку')

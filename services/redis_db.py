@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import List
 
 import redis
 
@@ -41,7 +42,7 @@ class RedisCache:
         user_data_str = json.dumps(user_data)
         self.redis.set(f'user_data:{user_id}', user_data_str)
 
-    def get_queue_of_clients(self):
+    def get_queue_of_clients(self) -> List | None:
         list_of_binary = self.redis.lrange('queue', 0, -1)
         if not list_of_binary:
             return None

@@ -2,7 +2,7 @@ import logging
 
 from handlers.text_messages import TEXT_MESSAGES
 from handlers.keyboards import remove_keyboard, ClientKeyboards, OperatorKeyboards, PartnerKeyboards, GeneralKeyboards
-from services.db_data import get_user_data_from_db
+from services.db_data import get_users_data
 from services.redis_db import redis_cache
 from services.states import MyStates
 
@@ -32,44 +32,6 @@ class GeneralCommands:
         bot.send_message(message.chat.id, TEXT_MESSAGES['start_unauthorized'], reply_markup=GeneralKeyboards.type_of_user())
         logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
-    @staticmethod
-    def cancel(message, bot):
-        """ Выход из STATE """
-        user_id = message.from_user.id
-        state = bot.get_state(user_id)
-        match state:
-            case 'MyStates:type_of_user' | 'MyStates:name' | 'MyStates:phone_number' | 'MyStates:company' | 'MyStates:website':
-                if state == 'MyStates:phone_number':
-                    remove_keyboard(message, bot, 'Отменено')
-                bot.set_state(user_id, MyStates.type_of_user)
-                bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'], reply_markup=GeneralKeyboards.type_of_user())
-                return
-            case None:
-                return
-        bot.delete_state(user_id)
-        logger.info(f'State пользователя удалён -- {bot.get_state(user_id)}')
-
-
-class ClientCommands:
-    @staticmethod
-    def start(message, bot):
-        logger.info(f'Пользователь {message.from_user.id} начал общение с ботом')
-        user_id = message.from_user.id
-        user_data = get_user_data_from_db(user_id)
-        has_documents = bool(user_data['documents'])
-        keyboard = ClientKeyboards.enter_menu(doc=has_documents)
-        client_state = bot.get_state(user_id, message.chat.id)
-        text_message = TEXT_MESSAGES['start'].format(username=user_data['name'], company=user_data['company'])
-        if client_state is None or client_state == 'MyStates:dialogue_with_operator':
-            bot.send_message(message.chat.id, text_message, reply_markup=keyboard)
-
-        else:
-            bot.delete_state(user_id, message.chat.id)
-            remove_keyboard(message, bot, 'Отменено')
-            bot.send_message(message.chat.id, text_message, reply_markup=keyboard)
-
-        logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
-
 
     @staticmethod
     def cancel(message, bot):
@@ -96,9 +58,32 @@ class ClientCommands:
                 return
         remove_keyboard(message, bot, 'Отменено')
         bot.send_message(message.chat.id, 'Главное меню',
-                         reply_markup=ClientKeyboards.enter_menu())
+                         reply_markup=GeneralKeyboards.enter_menu())
         bot.delete_state(user_id)
         logger.info(f'State пользователя удалён -- {bot.get_state(user_id)}')
+
+
+class ClientCommands:
+    @staticmethod
+    def start(message, bot):
+        logger.info(f'Пользователь {message.from_user.id} начал общение с ботом')
+        user_id = message.from_user.id
+        user_data = get_users_data(user_id)
+        has_documents = bool(user_data['documents'])
+        keyboard = GeneralKeyboards.enter_menu(doc=has_documents)
+        client_state = bot.get_state(user_id, message.chat.id)
+        text_message = TEXT_MESSAGES['start'].format(username=user_data['name'], company=user_data['company'])
+        if client_state is None or client_state == 'MyStates:dialogue_with_operator':
+            bot.send_message(message.chat.id, text_message, reply_markup=keyboard)
+
+        else:
+            bot.delete_state(user_id, message.chat.id)
+            remove_keyboard(message, bot, 'Отменено')
+            bot.send_message(message.chat.id, text_message, reply_markup=keyboard)
+
+        logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
+
+
 
 
 class OperatorCommands:
@@ -134,7 +119,7 @@ class PartnerCommands:
     def start(message, bot):
         logger.info(f'Партнер {message.from_user.id} начал общение с ботом')
         partner_id = message.from_user.id
-        user_data = get_user_data_from_db(partner_id, 'partners')
+        user_data = get_users_data(partner_id)
         has_documents = bool(user_data['documents'])
         keyboard = PartnerKeyboards.enter_menu(doc=has_documents)
         client_state = bot.get_state(partner_id, message.chat.id)

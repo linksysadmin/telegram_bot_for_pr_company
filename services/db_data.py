@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict
+from typing import Dict, List, Tuple, Any
 
 from mysql import connector
 
@@ -10,12 +10,11 @@ from services.redis_db import redis_cache
 logger = logging.getLogger(__name__)
 
 
-def get_user_data_from_db(user_id: int, table: str = 'clients') -> dict:
+def __get_users_data(user_ids: list | int) -> Dict[str, Any] | List[dict[str, Any]]:
     """
     Функция принимает telegram_id пользователя
     Args:
-        user_id:
-        table: таблица в которой выполниться поиск пользователя
+        user_ids: list of users id or user id
     Returns:
         A dictionary with the following keys:
         Field Name | Data Type | Description
@@ -30,44 +29,43 @@ def get_user_data_from_db(user_id: int, table: str = 'clients') -> dict:
         | documents | str | Have documents. |
     """
     try:
-        user_data = redis_cache.get_user_data(user_id)
-        if user_data:
-            return user_data
-        data = fetch_all(sql='SELECT * FROM {} WHERE id = %s'.format(table),
-                         params=(user_id,))
-        dict_user_data = {
-            'date_of_registration': data[0][0].strftime('%d-%m-%Y'),
-            'id': data[0][1],
-            'name': data[0][2],
-            'tg_username': data[0][3],
-            'phone': data[0][4],
-            'company': data[0][5],
-            'website': data[0][6],
-            'documents': data[0][7],
-            'status': data[0][8],
-        }
-        redis_cache.set_user_data(user_id, dict_user_data)
-        return dict_user_data
-    except IndexError:
-        logger.error('Пользователь не существует в базе данных')
-
-
-def get_users_data_from_db(user_ids: list) -> list | None:
-    try:
-        if len(user_ids) == 1:
-            user_ids_query = f"('{user_ids[0]}')"
-        else:
-            user_ids_query = tuple(user_ids)
-        data = fetch_all(sql=f"SELECT * FROM clients WHERE id IN {user_ids_query}")
-        users_data = []
-        for row in data:
-            user_data = {'date_of_registration': row[0].strftime('%d-%m-%Y'), 'id': row[1], 'name': row[2],
-                         'tg_username': row[3], 'phone': row[4], 'company': row[5], 'website': row[6],
-                         'documents': row[7]}
-            users_data.append(user_data)
-        return users_data
+        if isinstance(user_ids, int):
+            data = fetch_all(sql='SELECT * FROM clients WHERE id = %s UNION SELECT * FROM partners WHERE id = %s;',
+                             params=(user_ids, user_ids))
+            dict_user_data = {
+                'date_of_registration': data[0][0].strftime('%d-%m-%Y'),
+                'id': data[0][1],
+                'name': data[0][2],
+                'tg_username': data[0][3],
+                'phone': data[0][4],
+                'company': data[0][5],
+                'website': data[0][6],
+                'documents': data[0][7],
+                'status': data[0][8],
+            }
+            return dict_user_data
+        elif isinstance(user_ids, list):
+            user_ids_query = f"('{user_ids[0]}')" if len(user_ids) == 1 else tuple(user_ids)
+            data = fetch_all(
+                sql=f"SELECT * FROM clients WHERE id IN {user_ids_query} UNION SELECT * FROM partners WHERE id IN {user_ids_query}")
+            users_data = []
+            for row in data:
+                user_data = {'date_of_registration': row[0].strftime('%d-%m-%Y'), 'id': row[1], 'name': row[2],
+                             'tg_username': row[3], 'phone': row[4], 'company': row[5], 'website': row[6],
+                             'documents': row[7], 'status': row[8]}
+                users_data.append(user_data)
+            if not users_data:
+                logger.error('Пользователя(й) нет в базе данных')
+            return users_data
     except connector.errors.ProgrammingError:
-        return None
+        logger.error(connector.errors.ProgrammingError)
+    except IndexError:
+        logger.error('Пользователя нет в базе данных')
+
+
+def get_users_data(user_ids) -> dict[str, Any] | list[dict[str, Any]]:
+    result = __get_users_data(user_ids)
+    return result
 
 
 def get_data_questions() -> list[tuple]:
@@ -223,7 +221,7 @@ def get_questions_from_db(direction, section, sub_direction=None) -> Dict:
 def get_question_and_answers_from_db(id_question: int) -> tuple:
     question = None
     question_and_answers = fetch_all(sql='SELECT question_text, answer FROM questions WHERE id = %s',
-                                         params=(id_question,))
+                                     params=(id_question,))
 
     try:
         question = question_and_answers[0][0]
@@ -238,7 +236,16 @@ def get_question_and_answers_from_db(id_question: int) -> tuple:
         return question, answers
 
 
-def update_question_and_answers(question_id: int, question: str, answers: str):
+def update_question_and_answers(question_id: int, question: str, answers: str) -> None:
+    """
+    Функция принимает telegram_id пользователя
+    Args:
+        question_id: 12
+        question: Вопрос
+        answers: Ответ1 | Ответ2 | Ответ3
+    Returns: None
+
+    """
     execute(
         sql='''UPDATE questions SET question_text = %s, answer = %s WHERE id = %s''',
         params=[(question, answers, question_id)]
@@ -246,11 +253,11 @@ def update_question_and_answers(question_id: int, question: str, answers: str):
 
 
 # if __name__ == '__main__':
-    # x, z = get_question_and_answers_from_db(84)
-    # print(x, z)
-    # update_question_and_answers(84, 'fawe', 'aegg | afkoawer | farefaew| aer')
-    # x, z = get_question_and_answers_from_db(84)
-    # print(x, z)
+# x, z = get_question_and_answers_from_db(84)
+# print(x, z)
+# update_question_and_answers(84, 'fawe', 'aegg | afkoawer | farefaew| aer')
+# x, z = get_question_and_answers_from_db(84)
+# print(x, z)
 
 
 def add_clients_data_to_db(table: str, user_id: int, name: str, tg_username, phone: str, company: str, website: str):
@@ -282,5 +289,3 @@ def update_user_status(user_id: int, status: str) -> None:
     execute(
         sql='''UPDATE clients SET status = %s WHERE id = %s''',
         params=[(status, user_id)])
-
-
