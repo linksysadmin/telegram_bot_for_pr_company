@@ -2,14 +2,14 @@ import logging
 
 from config import DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_REPORTS, DIR_FOR_OTHER_FILES, DIR_FOR_TECHNICAL_TASKS, OPERATOR_ID
 from handlers.commands import ClientCommands
-from handlers.keyboards import remove_keyboard, ClientKeyboards, OperatorKeyboards
+from handlers.keyboards import remove_keyboard, ClientKeyboards, OperatorKeyboards, GeneralKeyboards
 from handlers.text_messages import TEXT_MESSAGES
-from services.db_data import add_clients_data_to_db, get_question_and_answers_from_db, add_user_answers_to_db, \
-    get_user_answer, update_question_and_answers, get_users_data
+from services.db_data import add_clients_data_to_db, add_user_answers_to_db, \
+    get_user_answer, update_question_and_answers, get_users_data, add_question_and_answers_, get_question_data_by_path
 from services.file_handler import save_file, dialogue_logging
 from services.redis_db import redis_cache
-from services.states import MyStates
-from services.string_parser import CallDataParser, TextParser
+from services.states import GeneralStates, OperatorStates
+from services.string_parser import TextParser
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class UserRegistration:
     def get_type_of_user(message, bot):
         bot.add_data(message.from_user.id, message.chat.id, type_of_user=UserRegistration.__USER_TYPE_MAP[message.text])
         remove_keyboard(message, bot, 'Отлично! Введите ваше имя:')
-        bot.set_state(message.chat.id, MyStates.name, message.from_user.id)
+        bot.set_state(message.chat.id, GeneralStates.name, message.from_user.id)
 
     @staticmethod
     def get_user_name(message, bot):
@@ -32,7 +32,7 @@ class UserRegistration:
         bot.add_data(message.from_user.id, message.chat.id, name=message.text, tg_username=message.from_user.username)
         bot.send_message(message.chat.id, 'Укажите номер вашего телефона\n\nВы можете нажать клавишу "Отправить номер'
                                           ' телефона" для отправки номера 📲', reply_markup=ClientKeyboards.send_phone())
-        bot.set_state(message.chat.id, MyStates.phone_number, message.from_user.id)
+        bot.set_state(message.chat.id, GeneralStates.phone_number, message.from_user.id)
         logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
     @staticmethod
@@ -43,7 +43,7 @@ class UserRegistration:
             phone = message.contact.phone_number
         bot.add_data(message.from_user.id, message.chat.id, phone=phone)
         remove_keyboard(message, bot, 'Укажите ваш Веб-сайт')
-        bot.set_state(message.chat.id, MyStates.website, message.from_user.id)
+        bot.set_state(message.chat.id, GeneralStates.website, message.from_user.id)
         logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
     @staticmethod
@@ -52,7 +52,7 @@ class UserRegistration:
         website = message.text
         bot.add_data(message.from_user.id, message.chat.id, website=website)
         bot.send_message(message.chat.id, 'Укажите название вашей компании©️')
-        bot.set_state(message.chat.id, MyStates.company, message.from_user.id)
+        bot.set_state(message.chat.id, GeneralStates.company, message.from_user.id)
         logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
     @staticmethod
@@ -71,7 +71,7 @@ class UserRegistration:
         bot.delete_state(message.from_user.id, message.chat.id)
         bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=name,
                                                                         company=message.text),
-                         reply_markup=ClientKeyboards.enter_menu())
+                         reply_markup=GeneralKeyboards.enter_menu())
         logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
     @staticmethod
@@ -105,39 +105,37 @@ def get_answer_from_user(message, bot):
 
 
 def next_question(message, bot):
-    callback_for_next_question = redis_cache.get_next_question_callback(message.from_user.id)
-    next_question_id = CallDataParser.get_question_id(callback_for_next_question)
-    max_question_id = redis_cache.get_max_question_id(message.from_user.id)
-    if next_question_id <= max_question_id:
-        next_callback = f"question|{next_question_id + 1}"
-        redis_cache.set_question_id(user=message.from_user.id, question_id=next_question_id)
-        redis_cache.set_next_question_callback(user=message.from_user.id, callback=next_callback)
-    elif next_question_id > max_question_id:
-        remove_keyboard(message, bot, 'Вопросов в этом направлении больше, нет(')
-        ClientCommands.start(message, bot)
-        return
-    question, answers = get_question_and_answers_from_db(next_question_id)
-    user_answer = get_user_answer(message.from_user.id, next_question_id)
+    user_id = message.from_user.id
+    directory, sub_direction, section = redis_cache.get_directory_subdir_section(message.from_user.id)
+    question_id, number = redis_cache.get_id_and_number_of_question(user_id)
+
+
+    question_data = get_question_data_by_path(directory, sub_direction, section, number)
+    text = question_data['question_text']
+    id_ = question_data['id']
+    answers = question_data['answers']
+    user_answer = get_user_answer(message.from_user.id, id_)
     if user_answer:
-        bot.send_message(message.chat.id, f'❓{question}?\n\nВаше ответ:{user_answer}',
+        bot.send_message(message.chat.id, f'❓{text}?\n\nВаш ответ:{user_answer}',
                          reply_markup=ClientKeyboards.answer(answers))
         return
-    bot.set_state(message.from_user.id, MyStates.answer_to_question, message.from_user.id)
-    bot.send_message(message.chat.id, f'❓{question}?\n\nНапишите ответ и нажмите "✅ Отправить ответ"',
+    bot.set_state(message.from_user.id, GeneralStates.answer_to_question, message.from_user.id)
+    bot.send_message(message.chat.id, f'❓{text}?\n\nНапишите ответ и нажмите "✅ Отправить ответ"',
                      reply_markup=ClientKeyboards.answer(answers))
 
 
 def send_user_answers_to_db(message, bot):
     """ Выход из state вопроса и отправка ответов в базу данных"""
-    text_answers = "|".join(redis_cache.get_user_answers(user=message.from_user.id))
-    question_id = redis_cache.get_question_id(user=message.from_user.id)
-    add_user_answers_to_db(user_id=message.from_user.id, question_id=question_id, user_response=text_answers)
+    user_id = message.from_user.id
+    text_answers = "|".join(redis_cache.get_user_answers(user_id))
+    question_id, number = redis_cache.get_id_and_number_of_question(user_id)
+    add_user_answers_to_db(user_id=user_id, question_id=question_id, user_response=text_answers)
     redis_cache.delete_user_answers(user=message.from_user.id)
     bot.delete_state(message.from_user.id, message.chat.id)
     remove_keyboard(message, bot, 'Ваш ответ получен!')
-    path = redis_cache.get_keyboard_for_questions(message.from_user.id)
+    directory, sub_direction, section = redis_cache.get_directory_subdir_section(message.from_user.id)
     bot.send_message(message.chat.id, 'Выберите вопрос:',
-                     reply_markup=ClientKeyboards.questions(message.from_user.id, path=path))
+                     reply_markup=GeneralKeyboards.questions(message.from_user.id, directory, sub_direction, section))
 
 
 def operator_change_question(message, bot):
@@ -147,6 +145,15 @@ def operator_change_question(message, bot):
     update_question_and_answers(question_id, question_text, answers_text)
     bot.delete_state(message.from_user.id, message.chat.id)
     bot.send_message(message.chat.id, TEXT_MESSAGES['start_for_operator'], reply_markup=OperatorKeyboards.enter_menu())
+
+
+def operator_add_question(message, bot):
+    directory, sub_direction, section = redis_cache.get_directory_subdir_section(message.from_user.id)
+    question, answers = TextParser.get_question_and_answers(message.text)
+    add_question_and_answers_(directory, sub_direction, section, question, answers)
+    bot.delete_state(message.from_user.id, message.chat.id)
+    bot.send_message(message.chat.id, 'Вопрос добавлен в раздел!')
+
 
 
 def download_and_save_file(bot, message, path):
@@ -189,7 +196,7 @@ def get_technical_task_file_from_dialogue(message, bot):
     path = f'{DIR_FOR_TECHNICAL_TASKS}/{client_id}'
     download_and_save_file(bot, message, path)
     bot.send_document(client_id, document=message.document.file_id)
-    bot.set_state(message.from_user.id, MyStates.dialogue_with_client)
+    bot.set_state(message.from_user.id, OperatorStates.dialogue_with_client)
 
 
 def get_commercial_offer_file_from_dialogue(message, bot):
@@ -197,7 +204,7 @@ def get_commercial_offer_file_from_dialogue(message, bot):
     path = f'{DIR_FOR_COMMERCIAL_OFFERS}/{client_id}'
     download_and_save_file(bot, message, path)
     bot.send_document(client_id, document=message.document.file_id)
-    bot.set_state(message.from_user.id, MyStates.dialogue_with_client)
+    bot.set_state(message.from_user.id, OperatorStates.dialogue_with_client)
 
 
 def get_report_file_from_dialogue(message, bot):
@@ -205,7 +212,7 @@ def get_report_file_from_dialogue(message, bot):
     path = f'{DIR_FOR_REPORTS}/{client_id}'
     download_and_save_file(bot, message, path)
     bot.send_document(client_id, document=message.document.file_id)
-    bot.set_state(message.from_user.id, MyStates.dialogue_with_client)
+    bot.set_state(message.from_user.id, OperatorStates.dialogue_with_client)
 
 
 def get_other_file_from_dialogue(message, bot):
@@ -213,7 +220,7 @@ def get_other_file_from_dialogue(message, bot):
     path = f'{DIR_FOR_OTHER_FILES}/{client_id}'
     download_and_save_file(bot, message, path)
     bot.send_document(client_id, document=message.document.file_id)
-    bot.set_state(message.from_user.id, MyStates.dialogue_with_client)
+    bot.set_state(message.from_user.id, OperatorStates.dialogue_with_client)
 
 
 
@@ -225,6 +232,14 @@ def incorrect_change_question(message, bot):
     bot.send_message(message.chat.id, 'Некорректный ввод Вопроса и ответов\n\n'
                                       'Пример:\nВОПРОС || ОТВЕТ1| ОТВЕТ2| ОТВЕТ3')
 
+
+def incorrect_add_question(message, bot):
+    bot.send_message(message.chat.id, 'Некорректный ввод для добавления')
+
+
+def no_next_question(message, bot):
+    remove_keyboard(message, bot, 'Вопросов в этом направлении больше, нет(')
+    ClientCommands.start(message, bot)
 
 
 class DialogWithOperator:

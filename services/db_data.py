@@ -1,6 +1,7 @@
 import json
 import logging
-from typing import Dict, List, Tuple, Any
+from types import NoneType
+from typing import Dict, List, Any
 
 from mysql import connector
 
@@ -68,6 +69,58 @@ def get_users_data(user_ids) -> dict[str, Any] | list[dict[str, Any]]:
     return result
 
 
+
+def check_client_in_database(user_id: int) -> bool:
+    user = redis_cache.check_user(user_id)
+    if user:
+        return True
+    result_from_db = fetch_all(sql='''SELECT id FROM clients WHERE id = %s''',
+                               params=(user_id,)
+                               )
+    if result_from_db:
+        redis_cache.add_user(user_id)
+        return True
+    return False
+
+
+def check_partner_in_database(user_id: int) -> bool:
+    user = redis_cache.check_user(user_id)
+    if user:
+        return True
+    result_from_db = fetch_all(sql='''SELECT id FROM partners WHERE id = %s''',
+                               params=(user_id,)
+                               )
+    if result_from_db:
+        redis_cache.add_user(user_id)
+        return True
+    return False
+
+
+def get_user_answer(user_id: int, question_id: int):
+    result = fetch_all(
+        sql='''SELECT user_response FROM clients_briefings WHERE user_id = %s AND question_id = %s;''',
+        params=(user_id, question_id)
+    )
+    try:
+        answer = result[0][0]
+        return answer
+    except IndexError:
+        return None
+
+
+def get_user_list_of_questions_informal_and_answers(user_id: int, directory: str, section: str):
+    sql_query = '''SELECT q.informal_question, cb.user_response FROM questions q
+         JOIN clients_briefings cb ON q.id = cb.question_id
+          WHERE cb.user_id = %s AND q.direction = %s AND q.section_name = %s'''
+    result_from_db = fetch_all(
+        sql=sql_query,
+        params=(user_id, directory, section)
+    )
+    questions = [question[0] for question in result_from_db]
+    answers = [answer[1] for answer in result_from_db]
+    return questions, answers
+
+
 def get_data_questions() -> list[tuple]:
     data_briefings = redis_cache.get_data_questions()
     if data_briefings:
@@ -92,7 +145,8 @@ def get_sub_directions(direction: str):
     if sub_directions:
         return json.loads(sub_directions)
     sub_directions = fetch_all(sql='SELECT DISTINCT sub_direction FROM questions WHERE direction = %s',
-                               params=(direction,))
+                               params=(direction,)
+                               )
     if sub_directions[0][0] is None:
         return False
     list_of_sub_directions = [sub_dir[0] for sub_dir in sub_directions]
@@ -100,64 +154,12 @@ def get_sub_directions(direction: str):
     return list_of_sub_directions
 
 
-def check_client_in_database(user_id: int) -> bool:
-    user = redis_cache.check_client(user_id)
-    if user:
-        return True
-    result_from_db = fetch_all(
-        sql='''SELECT id FROM clients WHERE id = %s''',
-        params=(user_id,)
-    )
-    if result_from_db:
-        redis_cache.add_client(user_id)
-        return True
-    return False
-
-
-def check_partner_in_database(user_id: int) -> bool:
-    user = redis_cache.check_partner(user_id)
-    if user:
-        return True
-    result_from_db = fetch_all(
-        sql='''SELECT id FROM partners WHERE id = %s''',
-        params=(user_id,)
-    )
-    if result_from_db:
-        redis_cache.add_partner(user_id)
-        return True
-    return False
-
-
-def get_user_answer(user_id: int, question_id: int):
-    result = fetch_all(
-        sql='''SELECT user_response FROM clients_briefings WHERE client_id = %s AND question_id = %s;''',
-        params=(user_id, question_id)
-    )
-    try:
-        answer = result[0][0]
-        return answer
-    except IndexError:
-        return None
-
-
-def get_user_list_of_questions_informal_and_answers(user_id: int, directory: str, section: str):
-    result_from_db = fetch_all(
-        sql='''SELECT q.informal_question, cb.user_response FROM questions q
-         JOIN clients_briefings cb ON q.id = cb.question_id
-          WHERE cb.client_id = %s AND q.direction = %s AND q.section_name = %s''',
-        params=(user_id, directory, section)
-    )
-    questions = [question[0] for question in result_from_db]
-    answers = [answer[1] for answer in result_from_db]
-    return questions, answers
-
 
 def delete_user_answers_in_section(user_id: int, directory: str, section: str):
+    sql_query = '''DELETE FROM clients_briefings WHERE user_id = %s AND question_id 
+                    IN (SELECT id FROM questions WHERE section_name = %s AND direction = %s);'''
     execute(
-        sql='''DELETE FROM clients_briefings 
-        WHERE client_id = %s AND question_id IN
-         (SELECT id FROM questions 
-         WHERE section_name = %s AND direction = %s);''',
+        sql=sql_query,
         params=[(user_id, section, directory)]
     )
     return True
@@ -165,7 +167,7 @@ def delete_user_answers_in_section(user_id: int, directory: str, section: str):
 
 def get_questions_id_from_user_answers(user_id: int):
     result_from_db = fetch_all(
-        sql='''SELECT question_id FROM clients_briefings WHERE client_id = %s''',
+        sql='''SELECT question_id FROM clients_briefings WHERE user_id = %s''',
         params=(user_id,)
     )
     list_of_questions_id = [id_[0] for id_ in result_from_db]
@@ -204,7 +206,17 @@ def get_sections_by_direction_and_sub_direction(direction, sub_direction):
     return list_of_sections
 
 
-def get_questions_from_db(direction, section, sub_direction=None) -> Dict:
+def get_question_id_and_number(direction: str, section: str, sub_direction: str | None = None) -> Dict:
+    """
+    Функция возвращает {id: номер вопроса в секции}
+    Args:
+        direction: направление
+        sub_direction: поднаправление
+        section: секция вопросов
+
+    Returns:
+        Функция возвращает словарь вида: {id-вопроса: № вопроса в секции}
+    """
     if sub_direction is None:
         list_of_questions = fetch_all(
             sql='SELECT DISTINCT id, question_number FROM questions WHERE direction = %s AND sub_direction IS NULL AND '
@@ -236,9 +248,32 @@ def get_question_and_answers_from_db(id_question: int) -> tuple:
         return question, answers
 
 
+def get_question_data_by_path(directory: str, sub_direction: str | None, section: str, number_of_question: int) -> Dict:
+    sql_query = 'SELECT question_text, answer FROM questions WHERE direction = %s AND sub_direction = %s AND section_name = %s AND question_number = %s'
+    params = (directory, sub_direction, section, number_of_question,)
+    if sub_direction is None:
+        sql_query = 'SELECT id, question_text, answer FROM questions WHERE direction = %s AND sub_direction IS %s AND section_name = %s AND question_number = %s'
+    data = fetch_all(sql=sql_query, params=params)
+    dict_question_data = {
+        'id': data[0][0],
+        'question_text': data[0][1],
+        'answers': [] if data[0][2] is None else data[0][2].split('| '),
+    }
+    return dict_question_data
+
+
+def get_all_ids_in_section(directory: str, sub_direction: str | None, section: str) -> Dict:
+    sql_query = 'SELECT id, question_number FROM questions WHERE direction = %s AND sub_direction = %s AND section_name = %s'
+    params = (directory, sub_direction, section)
+    if sub_direction is None:
+        sql_query = 'SELECT id, question_number FROM questions WHERE direction = %s AND sub_direction IS %s AND section_name = %s'
+    data = fetch_all(sql=sql_query, params=params)
+    dict_of_numbers_and_ids_questions = {question[1]: question[0] for question in data}
+    return dict_of_numbers_and_ids_questions
+
+
 def update_question_and_answers(question_id: int, question: str, answers: str) -> None:
     """
-    Функция принимает telegram_id пользователя
     Args:
         question_id: 12
         question: Вопрос
@@ -250,14 +285,26 @@ def update_question_and_answers(question_id: int, question: str, answers: str) -
         sql='''UPDATE questions SET question_text = %s, answer = %s WHERE id = %s''',
         params=[(question, answers, question_id)]
     )
+    redis_cache.clear_redis_key('data_questions:all')
 
 
-# if __name__ == '__main__':
-# x, z = get_question_and_answers_from_db(84)
-# print(x, z)
-# update_question_and_answers(84, 'fawe', 'aegg | afkoawer | farefaew| aer')
-# x, z = get_question_and_answers_from_db(84)
-# print(x, z)
+def add_question_and_answers_(direction: str, sub_direction: str | None, section_name: str, question: str,
+                              answers: str) -> None:
+    params = (direction, sub_direction, section_name, question, question, answers, direction, sub_direction,
+              section_name)
+    if isinstance(sub_direction, NoneType):
+        sql_query = '''INSERT INTO questions (direction, sub_direction, section_name, question_number, question_text, informal_question, answer) 
+                SELECT %s, %s, %s, COALESCE(MAX(question_number), 0) + 1, %s, %s, %s FROM (SELECT MAX(question_number) AS question_number FROM questions 
+                WHERE direction = %s AND sub_direction IS %s AND section_name = %s) AS temp;'''
+    else:
+        sql_query = '''INSERT INTO questions (direction, sub_direction, section_name, question_number, question_text, informal_question, answer) 
+                SELECT %s, %s, %s, COALESCE(MAX(question_number), 0) + 1, %s, %s, %s FROM (SELECT MAX(question_number) AS question_number FROM questions 
+                WHERE direction = %s AND sub_direction = %s AND section_name = %s) AS temp;'''
+    execute(
+        sql=sql_query,
+        params=[params]
+    )
+    redis_cache.clear_redis_key('data_questions:all')
 
 
 def add_clients_data_to_db(table: str, user_id: int, name: str, tg_username, phone: str, company: str, website: str):
@@ -273,8 +320,7 @@ def add_clients_data_to_db(table: str, user_id: int, name: str, tg_username, pho
 
 def add_user_answers_to_db(user_id: int, question_id: int, user_response: str):
     execute(
-        sql='''INSERT INTO clients_briefings (client_id, question_id, user_response)
-             VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE user_response = VALUES (user_response)''',
+        sql='''INSERT INTO clients_briefings (user_id, question_id, user_response) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE user_response = VALUES(user_response)''',
         params=[(user_id, question_id, user_response)])
 
 

@@ -4,10 +4,11 @@ from handlers.callbacks import ClientCallbacks, OperatorCallbacks, GamesCallback
 from handlers.get_info import UserRegistration, DialogWithOperator
 from handlers.keyboards import GeneralKeyboards, ClientKeyboards, OperatorKeyboards
 from services.filters import CheckPhoneNumber, ContactForm, CheckConsent, CheckFile, CheckClient, \
-    CheckSubDirectory, CheckSection, SendAnswer, NextQuestion, CheckOperator, CheckTextOnlyInMessage, \
-    CheckDocumentInMessage, CheckPhotoInMessage, CheckChangeQuestion, CheckPartner, UserType
-from services.states import MyStates, OperatorStates
-from services.string_parser import CallDataParser
+    CheckSubDirectory, CheckSection, SendAnswer, CheckOperator, CheckTextOnlyInMessage, \
+    CheckDocumentInMessage, CheckPhotoInMessage, CheckChangeQuestion, CheckPartner, UserType, CheckAddQuestion, \
+    CheckQuestionNumber
+from services.states import GeneralStates, OperatorStates
+from services.string_parser import Parser
 
 
 def registration_filters(bot):
@@ -27,11 +28,12 @@ def registration_filters(bot):
                CheckSubDirectory(),
                CheckSection(),
                SendAnswer(),
-               NextQuestion(),
                CheckTextOnlyInMessage(),
                CheckDocumentInMessage(),
                CheckPhotoInMessage(),
                CheckChangeQuestion(),
+               CheckAddQuestion(),
+               CheckQuestionNumber(),
                )
 
     for filter_ in FILTERS:
@@ -50,97 +52,113 @@ def registration_commands(bot):
 
     # CLIENT
     bot.register_message_handler(commands=['start'], callback=ClientCommands.start, pass_bot=True, client=True)
-    bot.register_message_handler(commands=['cancel'], state="*", callback=GeneralCommands.cancel, pass_bot=True,
+    bot.register_message_handler(commands=['cancel'], state="*", callback=GeneralCommands.cancel_to_main_menu, pass_bot=True,
                                  client=True)
     # PARTNER
     bot.register_message_handler(commands=['start'], callback=PartnerCommands.start, pass_bot=True, partner=True)
-    bot.register_message_handler(commands=['cancel'], state="*", callback=GeneralCommands.cancel, pass_bot=True,
+    bot.register_message_handler(commands=['cancel'], state="*", callback=GeneralCommands.cancel_to_main_menu, pass_bot=True,
                                  partner=True)
 
 
 def registration_file_handling(bot):
     """  Регистрация функций обработки файлов  """
-    bot.register_message_handler(state=MyStates.get_technical_task_file,
+    bot.register_message_handler(state=GeneralStates.get_technical_task_file,
                                  callback=get_info.get_technical_task_file, pass_bot=True, document=True)
-    bot.register_message_handler(state=MyStates.get_commercial_offer_file,
+    bot.register_message_handler(state=GeneralStates.get_commercial_offer_file,
                                  callback=get_info.get_commercial_offer_file, pass_bot=True, document=True)
-    bot.register_message_handler(state=MyStates.get_report_file_in_dialogue,
-                                 callback=get_info.get_report_file, pass_bot=True, document=True)
-    bot.register_message_handler(state=MyStates.get_other_file,
+    bot.register_message_handler(state=GeneralStates.get_other_file,
                                  callback=get_info.get_other_file, pass_bot=True, document=True)
-    bot.register_message_handler(state=MyStates.get_technical_task_file_in_dialogue,
+    bot.register_message_handler(state=GeneralStates.get_report_file,
+                                 callback=get_info.get_report_file, pass_bot=True, document=True)
+    bot.register_message_handler(state=(GeneralStates.get_technical_task_file, GeneralStates.get_commercial_offer_file,
+                                        GeneralStates.get_report_file, GeneralStates.get_other_file,
+                                        OperatorStates.get_technical_task_file_in_dialogue,
+                                        OperatorStates.get_commercial_offer_file_in_dialogue,
+                                        OperatorStates.get_report_file_in_dialogue,
+                                        OperatorStates.get_other_file_in_dialogue),
+                                 callback=get_info.file_incorrect, pass_bot=True, document=False)
+
+    # OPERATOR
+    bot.register_message_handler(state=OperatorStates.get_technical_task_file_in_dialogue,
                                  callback=get_info.get_technical_task_file_from_dialogue, pass_bot=True, document=True)
-    bot.register_message_handler(state=MyStates.get_commercial_offer_file_in_dialogue,
+    bot.register_message_handler(state=OperatorStates.get_commercial_offer_file_in_dialogue,
                                  callback=get_info.get_commercial_offer_file_from_dialogue, pass_bot=True,
                                  document=True)
-    bot.register_message_handler(state=MyStates.get_report_file_in_dialogue,
+    bot.register_message_handler(state=OperatorStates.get_report_file_in_dialogue,
                                  callback=get_info.get_report_file_from_dialogue, pass_bot=True, document=True)
-    bot.register_message_handler(state=MyStates.get_other_file_in_dialogue,
+
+    bot.register_message_handler(state=OperatorStates.get_other_file_in_dialogue,
                                  callback=get_info.get_other_file_from_dialogue, pass_bot=True, document=True)
-    bot.register_message_handler(state=[MyStates.get_technical_task_file, MyStates.get_commercial_offer_file,
-                                        MyStates.get_report_file, MyStates.get_other_file,
-                                        MyStates.get_technical_task_file_in_dialogue,
-                                        MyStates.get_commercial_offer_file_in_dialogue,
-                                        MyStates.get_report_file_in_dialogue, MyStates.get_other_file_in_dialogue],
-                                 callback=get_info.file_incorrect, pass_bot=True, document=False)
 
 
 def registration_states(bot):
-    """   Регистрация состояний пользователя   """
-    bot.register_message_handler(state="*", text=['Отменить'], callback=GeneralCommands.cancel, pass_bot=True,
-                                 client=False, operator=False, partner=False)
-    bot.register_message_handler(state="*", text=['Отменить'], callback=GeneralCommands.cancel, pass_bot=True,
+    """   Регистрация состояний пользователя """
+    bot.register_message_handler(text=['Отменить'], callback=GeneralCommands.cancel_to_start_registration,
+                                 pass_bot=True, client=False, operator=False, partner=False)
+    bot.register_message_handler(state="*", text=['Отменить'], callback=GeneralCommands.cancel_to_main_menu, pass_bot=True,
                                  client=True)
-    bot.register_message_handler(state="*", text=['К вопросам'], callback=GeneralCommands.cancel, pass_bot=True,
-                                 client=True)
-    bot.register_message_handler(state="*", text=['К вопросам'], callback=GeneralCommands.cancel, pass_bot=True,
+    bot.register_message_handler(state="*", text=['Отменить'], callback=GeneralCommands.cancel_to_main_menu, pass_bot=True,
                                  partner=True)
-
+    bot.register_message_handler(state=GeneralStates.answer_to_question, text=['К вопросам'],
+                                 callback=GeneralCommands.cancel_to_questions, pass_bot=True,
+                                 client=True)
+    bot.register_message_handler(state=GeneralStates.answer_to_question, text=['К вопросам'],
+                                 callback=GeneralCommands.cancel_to_questions, pass_bot=True,
+                                 partner=True)
+    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=get_info.next_question, pass_bot=True,
+                                 text=['Следующий вопрос'], in_the_range_of_questions=True)
+    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=get_info.no_next_question,
+                                 pass_bot=True,
+                                 text=['Следующий вопрос'], in_the_range_of_questions=False)
     # USER REGISTRATION
-    bot.register_message_handler(state=MyStates.type_of_user, callback=UserRegistration.get_type_of_user, pass_bot=True,
+    bot.register_message_handler(state=GeneralStates.type_of_user, callback=UserRegistration.get_type_of_user,
+                                 pass_bot=True,
                                  user_type=True)
-    bot.register_message_handler(state=MyStates.type_of_user, callback=UserRegistration.user_type_incorrect,
+    bot.register_message_handler(state=GeneralStates.type_of_user, callback=UserRegistration.user_type_incorrect,
                                  pass_bot=True, user_type=False)
-    bot.register_message_handler(state=MyStates.name, callback=UserRegistration.get_user_name, pass_bot=True)
-    bot.register_message_handler(state=MyStates.phone_number, callback=UserRegistration.get_user_phone, pass_bot=True,
+    bot.register_message_handler(state=GeneralStates.name, callback=UserRegistration.get_user_name, pass_bot=True)
+    bot.register_message_handler(state=GeneralStates.phone_number, callback=UserRegistration.get_user_phone,
+                                 pass_bot=True,
                                  contact_form=True, check_phone=False)
-    bot.register_message_handler(state=MyStates.phone_number, callback=UserRegistration.get_user_phone, pass_bot=True,
+    bot.register_message_handler(state=GeneralStates.phone_number, callback=UserRegistration.get_user_phone,
+                                 pass_bot=True,
                                  check_phone=True)
-    bot.register_message_handler(state=MyStates.phone_number, callback=UserRegistration.phone_incorrect, pass_bot=True,
+    bot.register_message_handler(state=GeneralStates.phone_number, callback=UserRegistration.phone_incorrect,
+                                 pass_bot=True,
                                  check_phone=False)
-    bot.register_message_handler(state=MyStates.website, callback=UserRegistration.get_user_website, pass_bot=True)
-    bot.register_message_handler(state=MyStates.company, callback=UserRegistration.get_user_company, pass_bot=True)
-
-    # DIALOG WITH OPERATOR
-    bot.register_message_handler(state=MyStates.request, callback=DialogWithOperator.send_request_to_operator,
+    bot.register_message_handler(state=GeneralStates.website, callback=UserRegistration.get_user_website, pass_bot=True)
+    bot.register_message_handler(state=GeneralStates.company, callback=UserRegistration.get_user_company, pass_bot=True)
+    bot.register_message_handler(state=GeneralStates.request_for_dialogue,
+                                 callback=DialogWithOperator.send_request_to_operator,
                                  pass_bot=True)
-    bot.register_message_handler(state=MyStates.dialogue_with_operator,
+    bot.register_message_handler(state=GeneralStates.dialogue_with_operator,
                                  callback=DialogWithOperator.send_message_to_operator, pass_bot=True, text_only=True)
-    bot.register_message_handler(state=MyStates.dialogue_with_operator,
+    bot.register_message_handler(state=GeneralStates.dialogue_with_operator,
                                  callback=DialogWithOperator.send_document_to_operator, pass_bot=True, document=True)
-    bot.register_message_handler(state=MyStates.dialogue_with_operator,
+    bot.register_message_handler(state=GeneralStates.dialogue_with_operator,
                                  callback=DialogWithOperator.send_photo_to_operator, pass_bot=True, photo=True)
-    bot.register_message_handler(state=MyStates.dialogue_with_client,
-                                 callback=DialogWithOperator.send_message_to_client, pass_bot=True, text_only=True)
-    bot.register_message_handler(state=MyStates.dialogue_with_client,
-                                 callback=DialogWithOperator.send_document_to_client, pass_bot=True, document=True)
-    bot.register_message_handler(state=MyStates.dialogue_with_client, callback=DialogWithOperator.send_photo_to_client,
-                                 pass_bot=True, photo=True)
 
-    bot.register_message_handler(state=MyStates.answer_to_question, callback=get_info.next_question, pass_bot=True,
-                                 text_is_next_question=True)
-    bot.register_message_handler(state=MyStates.answer_to_question, callback=get_info.get_answer_from_user,
+    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=get_info.get_answer_from_user,
                                  pass_bot=True, send_answer=False)
-    bot.register_message_handler(state=MyStates.answer_to_question, callback=get_info.send_user_answers_to_db,
+    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=get_info.send_user_answers_to_db,
                                  pass_bot=True, send_answer=True)
+    # OPERATOR
+
     bot.register_message_handler(state=OperatorStates.change_question, callback=get_info.operator_change_question,
                                  pass_bot=True, operator=True, check_question=True)
     bot.register_message_handler(state=OperatorStates.change_question, callback=get_info.incorrect_change_question,
                                  pass_bot=True, operator=True, check_question=False)
-    # bot.register_message_handler(state=OperatorStates.add_question, callback=get_info.operator_change_question,
-    #                              pass_bot=True, operator=True, check_question=True)
-    # bot.register_message_handler(state=OperatorStates.add_question, callback=get_info.incorrect_change_question,
-    #                              pass_bot=True, operator=True, check_question=False)
+    bot.register_message_handler(state=OperatorStates.dialogue_with_client,
+                                 callback=DialogWithOperator.send_message_to_client, pass_bot=True, text_only=True)
+    bot.register_message_handler(state=OperatorStates.dialogue_with_client,
+                                 callback=DialogWithOperator.send_document_to_client, pass_bot=True, document=True)
+    bot.register_message_handler(state=OperatorStates.dialogue_with_client,
+                                 callback=DialogWithOperator.send_photo_to_client,
+                                 pass_bot=True, photo=True)
+    bot.register_message_handler(state=OperatorStates.add_question, callback=get_info.operator_add_question,
+                                 pass_bot=True, operator=True, check_question=True)
+    bot.register_message_handler(state=OperatorStates.add_question, callback=get_info.incorrect_change_question,
+                                 pass_bot=True, operator=True, check_question=False)
 
 
 def registration_games(bot):
@@ -205,7 +223,7 @@ def registration_menu_navigation(bot):
     bot.register_callback_query_handler(func=lambda callback: callback.data == GeneralKeyboards.data_enter_menu,
                                         callback=GeneralCallbacks.call_enter_menu, pass_bot=True, partner=True)
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == GeneralKeyboards.data_question,
+        func=lambda callback: Parser.parse_callback(callback.data) == GeneralKeyboards.data_question,
         callback=GeneralCallbacks.call_question, pass_bot=True, partner=True)
 
     # CLIENT
@@ -224,18 +242,18 @@ def registration_menu_navigation(bot):
     bot.register_callback_query_handler(func=lambda callback: callback.data == GeneralKeyboards.data_blog,
                                         callback=ClientCallbacks.call_blog, pass_bot=True)
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == GeneralKeyboards.data_question,
+        func=lambda callback: Parser.parse_callback(callback.data) == GeneralKeyboards.data_question,
         callback=GeneralCallbacks.call_question, pass_bot=True, client=True)
 
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == ClientKeyboards.data_gen_tech_exercise,
+        func=lambda callback: Parser.parse_callback(callback.data) == ClientKeyboards.data_gen_tech_exercise,
         callback=ClientCallbacks.call_generation_technical_exercise, pass_bot=True)
 
     # OPERATOR
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorKeyboards.data_change_question,
                                         callback=GeneralCallbacks.call_briefing, pass_bot=True, operator=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorKeyboards.data_add_question,
-                                        callback=GeneralCallbacks.call_briefing, pass_bot=True, operator=True)
+                                        callback=OperatorCallbacks.call_add_question, pass_bot=True, operator=True)
 
     bot.register_callback_query_handler(func=lambda callback: callback.data == GeneralKeyboards.data_back_to_questions,
                                         callback=OperatorCallbacks.call_back_to_questions, pass_bot=True, operator=True)
@@ -243,17 +261,17 @@ def registration_menu_navigation(bot):
     bot.register_callback_query_handler(func=lambda callback: callback.data == GeneralKeyboards.data_enter_menu,
                                         callback=OperatorCallbacks.call_enter_menu, pass_bot=True, operator=True)
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == GeneralKeyboards.data_get_documents,
+        func=lambda callback: Parser.parse_callback(callback.data) == GeneralKeyboards.data_get_documents,
         callback=OperatorCallbacks.call_file_types, pass_bot=True, operator=True)
 
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == OperatorKeyboards.data_client_info,
+        func=lambda callback: Parser.parse_callback(callback.data) == OperatorKeyboards.data_client_info,
         callback=OperatorCallbacks.call_client_info, pass_bot=True)
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == OperatorKeyboards.data_enter_dialog,
+        func=lambda callback: Parser.parse_callback(callback.data) == OperatorKeyboards.data_enter_dialog,
         callback=OperatorCallbacks.call_enter_into_a_dialog, pass_bot=True, operator=True)
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == OperatorKeyboards.data_dialog_history,
+        func=lambda callback: Parser.parse_callback(callback.data) == OperatorKeyboards.data_dialog_history,
         callback=OperatorCallbacks.call_get_dialogue_history, pass_bot=True)
 
     bot.register_callback_query_handler(func=lambda callback: callback.data == ClientKeyboards.data_change_answer,
@@ -273,7 +291,7 @@ def registration_menu_navigation(bot):
         callback=OperatorCallbacks.call_upload_file_in_dialogue, pass_bot=True)
 
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == GeneralKeyboards.data_question,
+        func=lambda callback: Parser.parse_callback(callback.data) == GeneralKeyboards.data_question,
         callback=OperatorCallbacks.call_change_question, pass_bot=True, operator=True)
 
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorKeyboards.data_upload_file,
@@ -281,7 +299,7 @@ def registration_menu_navigation(bot):
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorKeyboards.data_menu_in_dialogue,
                                         callback=OperatorCallbacks.call_enter_menu_in_dialogue, pass_bot=True)
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == OperatorKeyboards.data_queue,
+        func=lambda callback: Parser.parse_callback(callback.data) == OperatorKeyboards.data_queue,
         callback=OperatorCallbacks.call_queue, pass_bot=True)
 
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorKeyboards.data_requests,
@@ -294,14 +312,14 @@ def registration_menu_navigation(bot):
                                         callback=OperatorCallbacks.call_settings, pass_bot=True)
 
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == GeneralKeyboards.data_get_file,
-        callback=OperatorCallbacks.call_get_file_in_dialogue, state=MyStates.dialogue_with_client,
+        func=lambda callback: Parser.parse_callback(callback.data) == GeneralKeyboards.data_get_file,
+        callback=OperatorCallbacks.call_get_file_in_dialogue, state=OperatorStates.dialogue_with_client,
         pass_bot=True, operator=True)
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == GeneralKeyboards.data_get_file,
+        func=lambda callback: Parser.parse_callback(callback.data) == GeneralKeyboards.data_get_file,
         callback=OperatorCallbacks.call_get_file, pass_bot=True, operator=True)
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == GeneralKeyboards.data_get_file,
+        func=lambda callback: Parser.parse_callback(callback.data) == GeneralKeyboards.data_get_file,
         callback=OperatorCallbacks.call_get_file, pass_bot=True, operator=False)
     bot.register_callback_query_handler(
         func=lambda callback: callback.data == OperatorKeyboards.data_tech_tasks_in_dialogue,
@@ -316,15 +334,15 @@ def registration_menu_navigation(bot):
         func=lambda callback: callback.data == OperatorKeyboards.data_other_documents_in_dialogue,
         callback=OperatorCallbacks.call_other_documents_in_dialogue, pass_bot=True)
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == OperatorKeyboards.data_show_tech_tasks,
+        func=lambda callback: Parser.parse_callback(callback.data) == OperatorKeyboards.data_show_tech_tasks,
         callback=OperatorCallbacks.call_client_technical_tasks, pass_bot=True)
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == OperatorKeyboards.data_show_com_offers,
+        func=lambda callback: Parser.parse_callback(callback.data) == OperatorKeyboards.data_show_com_offers,
         callback=OperatorCallbacks.call_client_commercial_offers, pass_bot=True)
     bot.register_callback_query_handler(
-        func=lambda callback: CallDataParser.parse_callback(callback.data) == OperatorKeyboards.data_show_reports,
+        func=lambda callback: Parser.parse_callback(callback.data) == OperatorKeyboards.data_show_reports,
         callback=OperatorCallbacks.call_client_reports, pass_bot=True)
-    bot.register_callback_query_handler(func=lambda callback: CallDataParser.parse_callback(
+    bot.register_callback_query_handler(func=lambda callback: Parser.parse_callback(
         callback.data) == OperatorKeyboards.data_show_other_documents,
                                         callback=OperatorCallbacks.call_client_other_documents, pass_bot=True)
     bot.register_callback_query_handler(func=lambda callback: callback.data == OperatorKeyboards.data_end_dialogue,

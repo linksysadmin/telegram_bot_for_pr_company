@@ -1,8 +1,10 @@
 import json
 import logging
-from typing import List
+from typing import List, Tuple
 
 import redis
+
+from services.string_parser import Parser
 
 logger = logging.getLogger(__name__)
 
@@ -11,25 +13,12 @@ class RedisCache:
     def __init__(self, host='localhost', port=6379, db=0):
         self.redis = redis.Redis(host=host, port=port, db=db)
 
-    def add_client(self, user_id):
-        self.redis.setex(f'client_exist:{user_id}', 86400, b'True')
+    def add_user(self, user_id):
+        self.redis.sadd(f'users', user_id)
 
-    def check_client(self, user_id):
-        in_db = self.redis.get(f'client_exist:{user_id}')
-        if in_db == b'True':
-            return True
-        else:
-            return False
-
-    def add_partner(self, user_id):
-        self.redis.setex(f'partner_exist:{user_id}', 86400, b'True')
-
-    def check_partner(self, user_id):
-        in_db = self.redis.get(f'partner_exist:{user_id}')
-        if in_db == b'True':
-            return True
-        else:
-            return False
+    def check_user(self, user_id) -> bool:
+        result = self.redis.sismember(f'users', user_id)
+        return result
 
     def get_user_data(self, user_id: int) -> dict:
         user_data = self.redis.get(f'user_data:{user_id}')
@@ -68,6 +57,17 @@ class RedisCache:
         all_path = json.loads(self.redis.get(f'dict_of_path|{user_id}'))
         return all_path[key_of_path]
 
+    def set_id_and_number_of_question(self, user_id, question_id: int, number: int) -> None:
+        list_of_id_and_number = [question_id, number]
+        self.redis.set(f'id_and_number_of_questions_section_for_{user_id}', json.dumps(list_of_id_and_number))
+
+    def get_id_and_number_of_question(self, user_id) -> Tuple:
+        list_of_id_and_number = json.loads(self.redis.get(f'id_and_number_of_questions_section_for_{user_id}'))
+        question_id = list_of_id_and_number[0]
+        number = list_of_id_and_number[1]
+        return question_id, number
+
+
     def set_selected_directory(self, user_id, path: str):
         self.redis.set(f'path_to_directory|{user_id}', json.dumps(path))
 
@@ -100,17 +100,13 @@ class RedisCache:
         self.redis.lrem('queue', 0, client_id)
         self.redis.lpush('queue', client_id)
 
-    def add_keyboard_for_questions(self, user_id: int, path):
-        self.redis.set(f'keyboard_for_questions|{user_id}', json.dumps(path))
+    def set_directory_subdir_section(self, user_id: int, path: str):
+        self.redis.set(f'path_to_questions_for_{user_id}', json.dumps(path))
 
-    def get_keyboard_for_questions(self, user_id: int):
-        return json.loads(self.redis.get(f'keyboard_for_questions|{user_id}'))
-
-    def set_max_question_id(self, user_id: int, number):
-        self.redis.set(f'max_questions|{user_id}', number)
-
-    def get_max_question_id(self, user_id: int) -> int:
-        return int(self.redis.get(f'max_questions|{user_id}'))
+    def get_directory_subdir_section(self, user_id: int) -> Tuple:
+        path = json.loads(self.redis.get(f'path_to_questions_for_{user_id}'))
+        directory, sub_direction, section = Parser.get_directory_sub_direction_section(path)
+        return directory, sub_direction, section
 
     def set_directories(self, directories: list):
         self.redis.set('directories:all', json.dumps(directories))
@@ -152,17 +148,6 @@ class RedisCache:
     def delete_user_answers(self, user: int):
         self.redis.delete(f'answers_list:{user}')
 
-    def set_question_id(self, user: int, question_id: int):
-        self.redis.set(f'question_id_for_user:{user}', question_id)
-
-    def get_question_id(self, user: int) -> int:
-        return int(self.redis.get(f'question_id_for_user:{user}'))
-
-    def set_next_question_callback(self, user: int, callback: str):
-        self.redis.set(f'next_question_callback_in_redis:{user}', json.dumps(callback))
-
-    def get_next_question_callback(self, user: int):
-        return json.loads(self.redis.get(f'next_question_callback_in_redis:{user}'))
 
     def set_operator_state(self, state):
         self.redis.set('operator_state', state)
@@ -178,6 +163,9 @@ class RedisCache:
             return json.loads(self.redis.get(f'{user_id}last_file_path'))
         except TypeError:
             return False
+
+    def clear_redis_key(self, key: str):
+        self.redis.delete(key)
 
     def clear_all_cache(self) -> None:
         logger.warning('Весь кэш очищен')

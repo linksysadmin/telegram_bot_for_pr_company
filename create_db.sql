@@ -35,28 +35,29 @@ CREATE TABLE clients (
 CREATE TABLE questions (
     id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
     direction VARCHAR(255),
-    sub_direction VARCHAR(255),
+    sub_direction VARCHAR(255) DEFAULT NULL,
     section_name VARCHAR(50),
     question_number INT,
     question_text TEXT,
     informal_question TEXT,
-    answer TEXT DEFAULT NULL
+    answer TEXT DEFAULT NULL,
+    UNIQUE KEY idx_question (direction, sub_direction, section_name, question_number)
 );
 
 
 CREATE TABLE clients_briefings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    client_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
     question_id INT NOT NULL,
     user_response TEXT,
-    UNIQUE KEY idx_client_question (client_id, question_id),
-    FOREIGN KEY(client_id) REFERENCES clients(id),
+    UNIQUE KEY idx_client_question (user_id, question_id),
     FOREIGN KEY(question_id) REFERENCES questions(id)
 );
 
 
-CREATE INDEX clients_briefings_index ON clients_briefings(client_id);
+
+CREATE INDEX clients_briefings_index ON clients_briefings(user_id);
 
 
 INSERT INTO questions (direction, sub_direction, section_name, question_number, question_text, informal_question, answer)

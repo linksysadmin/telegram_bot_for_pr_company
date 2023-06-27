@@ -3,10 +3,10 @@ import logging
 from telebot import types
 
 from services.db_data import get_directories, \
-    get_sections_from_db, get_questions_from_db, get_questions_id_from_user_answers, \
+    get_sections_from_db, get_question_id_and_number, get_questions_id_from_user_answers, \
     get_users_data
 from services.redis_db import redis_cache
-from services.string_parser import CallDataParser
+from services.string_parser import Parser
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ class GeneralKeyboards:
     def sections_from_subcategory(path: str) -> types.InlineKeyboardMarkup:
         logger.info(f'Клавиатура: sections_from_subcategory')
         keyboard = types.InlineKeyboardMarkup(row_width=1)
-        dir_, sub_dir = CallDataParser.get_dir_and_sub_dir(path)
+        dir_, sub_dir = Parser.get_dir_and_sub_dir(path)
         list_of_subcategories = get_sections_from_db(dir_, sub_dir)
         for section in list_of_subcategories:
             keyboard.add(types.InlineKeyboardButton(text=section, callback_data=f'{dir_}|{sub_dir}|{section}'))
@@ -103,6 +103,30 @@ class GeneralKeyboards:
         main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=GeneralKeyboards.data_enter_menu)
         keyboard.add(cancel, main_menu)
         return keyboard
+
+    @staticmethod
+    def questions(user_id: int, directory: str, sub_direction: str, section: str):
+        dict_of_question_id_and_number = get_question_id_and_number(directory, section, sub_direction)
+        list_of_id_questions_to_which_the_user_answered = get_questions_id_from_user_answers(user_id)
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buttons = []
+        for question_id, number_of_question in dict_of_question_id_and_number.items():
+            if question_id in list_of_id_questions_to_which_the_user_answered:
+                buttons.append(
+                    types.InlineKeyboardButton(text=f'✅ {number_of_question}',
+                                               callback_data=f'{GeneralKeyboards.data_question}{question_id}|{number_of_question}'))
+            else:
+                buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {number_of_question}',
+                                                          callback_data=f'{GeneralKeyboards.data_question}{question_id}|{number_of_question}'))
+        button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
+        for row in button_rows:
+            keyboard.row(*row)
+        technical_exercise = types.InlineKeyboardButton(text='Сформировать ТЗ', callback_data=f'{ClientKeyboards.data_gen_tech_exercise}{directory}|{sub_direction}|{section}')
+        cancel = types.InlineKeyboardButton(text='Назад', callback_data=GeneralKeyboards.data_cancel_to_directions)
+        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=GeneralKeyboards.data_enter_menu)
+        keyboard.add(technical_exercise, cancel, main_menu)
+        return keyboard
+
 
     @staticmethod
     def games():
@@ -155,43 +179,15 @@ class ClientKeyboards:
             return keyboard
         else:
             for key, value in dict_path_to_files.items():
-                filename = CallDataParser.get_file_name(value)
+                filename = Parser.get_file_name_from_path(value)
                 keyboard.add(
                     types.InlineKeyboardButton(text=f'{filename}', callback_data=f'{GeneralKeyboards.data_get_file}{key}'))
             keyboard.row(cancel, main_menu)
             return keyboard
 
-    @staticmethod
-    def questions(user_id: int, path: str):
-        redis_cache.add_keyboard_for_questions(user_id, path)
-        dir_, sub_dir, section = CallDataParser.get_directory_sub_direction_section(path)
-        keyboard = types.InlineKeyboardMarkup(row_width=1)
-        buttons = []
-        list_of_questions_id_from_user_answers = get_questions_id_from_user_answers(user_id)
-        dict_of_questions = get_questions_from_db(dir_, section, sub_dir)
-
-        for question_id, number_of_question in dict_of_questions.items():
-            if question_id in list_of_questions_id_from_user_answers:
-                buttons.append(
-                    types.InlineKeyboardButton(text=f'✅ {number_of_question}',
-                                               callback_data=f'{GeneralKeyboards.data_question}{question_id}'))
-            else:
-                buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {number_of_question}',
-                                                          callback_data=f'{GeneralKeyboards.data_question}{question_id}'))
-        max_question_id = list(dict_of_questions.keys())[-1]
-        redis_cache.set_max_question_id(user_id, max_question_id)
-        button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
-        for row in button_rows:
-            keyboard.row(*row)
-        technical_exercise = types.InlineKeyboardButton(text='Сформировать ТЗ',
-                                                        callback_data=f'{ClientKeyboards.data_gen_tech_exercise}{path}')
-        cancel = types.InlineKeyboardButton(text='Назад', callback_data=GeneralKeyboards.data_cancel_to_directions)
-        main_menu = types.InlineKeyboardButton(text='Главное меню', callback_data=GeneralKeyboards.data_enter_menu)
-        keyboard.add(technical_exercise, cancel, main_menu)
-        return keyboard
 
     @staticmethod
-    def answer(answers):
+    def answer(answers: list):
         keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
         for answer in answers:
             keyboard.add(types.KeyboardButton(text=answer))
@@ -386,16 +382,13 @@ class OperatorKeyboards:
         return keyboard
 
     @staticmethod
-    def questions(operator_id, path: str):
-        redis_cache.add_keyboard_for_questions(operator_id, path)
-
-        dir_, sub_dir, section = CallDataParser.get_directory_sub_direction_section(path)
+    def questions(directory, sub_direction, section):
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         buttons = []
-        dict_of_questions = get_questions_from_db(dir_, section, sub_dir)
-        for question_id, number_of_question in dict_of_questions.items():
+        dict_of_question_id_and_number = get_question_id_and_number(directory, section, sub_direction)
+        for question_id, number_of_question in dict_of_question_id_and_number.items():
             buttons.append(types.InlineKeyboardButton(text=f'❓ Вопрос {number_of_question}',
-                                                      callback_data=f'{GeneralKeyboards.data_question}{question_id}'))
+                                                      callback_data=f'{GeneralKeyboards.data_question}{question_id}|{number_of_question}'))
 
         button_rows = [buttons[i:i + 3] for i in range(0, len(buttons), 3)]
         for row in button_rows:

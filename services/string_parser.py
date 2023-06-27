@@ -4,7 +4,7 @@ from typing import Tuple, Union
 logger = logging.getLogger(__name__)
 
 
-class CallDataParser:
+class Parser:
     @staticmethod
     def parse_callback(data: str):
         try:
@@ -13,6 +13,8 @@ class CallDataParser:
             if len_string_path == 3 or len_string_path == 4:
                 if list_of_callback_parts[0] == 'tex':
                     return 'tex|'
+                elif list_of_callback_parts[0] == 'question':
+                    return 'question|'
             list_of_callback_parts_without_last_element = list_of_callback_parts[:-1]
             callback = '|'.join(list_of_callback_parts_without_last_element) + '|'
             return callback
@@ -65,14 +67,15 @@ class CallDataParser:
         return client_id
 
     @staticmethod
-    def get_question_id(call_data: str) -> int:
+    def get_question_id_and_number(call_data: str) -> Tuple:
         """
         Принимает строку из вызова call.data для inline-кнопок, выделяет id вопроса
         :param call_data: call.data
-        :return: int - id вопроса
+        :return: tuple - id вопроса, № вопроса
         """
-        question_id = int(call_data.split('|')[-1])
-        return question_id
+        question_id = int(call_data.split('|')[-2])
+        number = int(call_data.split('|')[-1])
+        return question_id, number
 
     @staticmethod
     def get_key_for_path(call_data: str) -> str:
@@ -99,7 +102,7 @@ class CallDataParser:
         return key
 
     @staticmethod
-    def get_file_name(path: str) -> str:
+    def get_file_name_from_path(path: str) -> str:
         """
         Принимает строку из /home/root/... , выделяет имя файла
 

@@ -1,10 +1,10 @@
 import logging
 
 from handlers.text_messages import TEXT_MESSAGES
-from handlers.keyboards import remove_keyboard, ClientKeyboards, OperatorKeyboards, PartnerKeyboards, GeneralKeyboards
+from handlers.keyboards import remove_keyboard, OperatorKeyboards, PartnerKeyboards, GeneralKeyboards
 from services.db_data import get_users_data
 from services.redis_db import redis_cache
-from services.states import MyStates
+from services.states import GeneralStates
 
 logger = logging.getLogger(__name__)
 
@@ -20,47 +20,48 @@ class GeneralCommands:
                 if state == 'MyStates:phone_number':
                     remove_keyboard(message, bot, 'Отменено')
                     bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'], reply_markup=GeneralKeyboards.type_of_user())
-                    bot.set_state(user_id, MyStates.type_of_user)
+                    bot.set_state(user_id, GeneralStates.type_of_user)
                     return
-                bot.set_state(user_id, MyStates.type_of_user)
+                bot.set_state(user_id, GeneralStates.type_of_user)
                 bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'],
                                  reply_markup=GeneralKeyboards.type_of_user())
                 return
             bot.delete_state(message.from_user.id, message.chat.id)
             remove_keyboard(message, bot, 'Отменено')
-        bot.set_state(message.from_user.id, MyStates.type_of_user)
+        bot.set_state(message.from_user.id, GeneralStates.type_of_user)
         bot.send_message(message.chat.id, TEXT_MESSAGES['start_unauthorized'], reply_markup=GeneralKeyboards.type_of_user())
         logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
+    @staticmethod
+    def cancel_to_main_menu(message, bot):
+        user_id = message.from_user.id
+        remove_keyboard(message, bot, 'Отменено')
+        bot.send_message(message.chat.id, 'Главное меню', reply_markup=GeneralKeyboards.enter_menu())
+        bot.delete_state(user_id)
+
 
     @staticmethod
-    def cancel(message, bot):
+    def cancel_to_questions(message, bot):
         """ Выход из STATE """
         user_id = message.from_user.id
-        state = bot.get_state(user_id)
-        match state:
-            case 'MyStates:answer_to_question':
-                bot.delete_state(user_id)
-                if redis_cache.get_user_answers(user=user_id):
-                    redis_cache.delete_user_answers(user=user_id)
-                path = redis_cache.get_keyboard_for_questions(user_id)
-                remove_keyboard(message, bot, 'Отменено')
-                bot.send_message(user_id, 'Выберите вопрос:',
-                                 reply_markup=ClientKeyboards.questions(user_id, path=path))
-                return
-            case 'MyStates:name' | 'MyStates:phone_number' | 'MyStates:company' | 'MyStates:website':
-                if state == 'MyStates:phone_number':
-                    remove_keyboard(message, bot, 'Отменено')
-                bot.set_state(user_id, MyStates.name)
-                bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'])
-                return
-            case None:
-                return
-        remove_keyboard(message, bot, 'Отменено')
-        bot.send_message(message.chat.id, 'Главное меню',
-                         reply_markup=GeneralKeyboards.enter_menu())
         bot.delete_state(user_id)
-        logger.info(f'State пользователя удалён -- {bot.get_state(user_id)}')
+        if redis_cache.get_user_answers(user=user_id):
+            redis_cache.delete_user_answers(user=user_id)
+        directory, sub_direction, section = redis_cache.get_directory_subdir_section(user_id)
+        remove_keyboard(message, bot, 'Отменено')
+        bot.send_message(user_id, 'Выберите вопрос:',
+                         reply_markup=GeneralKeyboards.questions(user_id, directory, sub_direction, section))
+
+    @staticmethod
+    def cancel_to_start_registration(message, bot):
+        print('1')
+        user_id = message.from_user.id
+        state = bot.get_state(user_id)
+        if state == 'GeneralStates:phone_number':
+            remove_keyboard(message, bot, 'Отменено')
+        bot.set_state(user_id, GeneralStates.name)
+        bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'])
+
 
 
 class ClientCommands:

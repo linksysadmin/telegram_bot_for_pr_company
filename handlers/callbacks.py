@@ -9,14 +9,14 @@ from config import OPERATOR_ID, DIR_FOR_OTHER_FILES, DIR_FOR_REPORTS, DIR_FOR_CO
 from handlers.keyboards import OperatorKeyboards, ClientKeyboards, GeneralKeyboards
 from handlers.text_messages import TEXT_MESSAGES
 from services.db_data import get_sections_from_db, get_sub_directions, get_users_data, \
-    get_question_and_answers_from_db, get_user_answer, update_user_status, update_info_about_user_docs_in_db, \
-    delete_user_answers_in_section, get_user_list_of_questions_informal_and_answers
+    get_question_and_answers_from_db, update_user_status, update_info_about_user_docs_in_db, \
+    delete_user_answers_in_section, get_user_list_of_questions_informal_and_answers, get_user_answer
 from services.file_handler import find_user_documents, get_list_of_clients_dialogue_files, file_check, \
     generate_technical_task_file
 from services.redis_db import redis_cache
-from services.states import MyStates, OperatorStates
+from services.states import GeneralStates, OperatorStates
 from services.status import ClientStatus
-from services.string_parser import CallDataParser
+from services.string_parser import Parser
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class GeneralCallbacks:
                               message_id=call.message.message_id,
                               text=TEXT_MESSAGES['start'].format(username=user_data['name'],
                                                                  company=user_data['company']),
-                                                                 reply_markup=reply_markup)
+                              reply_markup=reply_markup)
 
     @staticmethod
     def call_briefing(call, bot):
@@ -75,9 +75,11 @@ class GeneralCallbacks:
     @staticmethod
     def call_section(call, bot):
         path = call.data
-        keyboard = OperatorKeyboards.questions(call.from_user.id, path)
-        if call.from_user.id != OPERATOR_ID:
-            keyboard = ClientKeyboards.questions(call.from_user.id, path)
+        directory, sub_direction, section = Parser.get_directory_sub_direction_section(path)
+        redis_cache.set_directory_subdir_section(call.from_user.id, path)
+        keyboard = GeneralKeyboards.questions(call.from_user.id, directory, sub_direction, section)
+        if call.from_user.id == OPERATOR_ID:
+            keyboard = OperatorKeyboards.questions(directory, sub_direction, section)
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id,
                               text=TEXT_MESSAGES['menu'],
@@ -92,22 +94,21 @@ class GeneralCallbacks:
 
     @staticmethod
     def call_question(call, bot):
-        question_id = CallDataParser.get_question_id(call.data)
-        if question_id <= redis_cache.get_max_question_id(call.from_user.id):
-            next_callback = CallDataParser.get_next_callback_for_question(question_id)
-            redis_cache.set_question_id(user=call.from_user.id, question_id=question_id)
-            redis_cache.set_next_question_callback(user=call.from_user.id, callback=next_callback)
+        user_id = call.from_user.id
+        question_id, number_of_question = Parser.get_question_id_and_number(call.data)
+        redis_cache.set_id_and_number_of_question(user_id, question_id, number_of_question)
         question, answers = get_question_and_answers_from_db(question_id)
-        user_answer = get_user_answer(call.from_user.id, question_id)
+        user_answer = get_user_answer(user_id, question_id)
         if user_answer:
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+            bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id,
                                   text=f'❓{question}?\n\nВаш ответ:{user_answer}',
                                   reply_markup=ClientKeyboards.change_answer())
             return
-        bot.set_state(call.from_user.id, MyStates.answer_to_question, call.from_user.id)
+        bot.set_state(user_id, GeneralStates.answer_to_question, call.from_user.id)
         bot.delete_message(call.message.chat.id, call.message.id)
         bot.send_message(call.message.chat.id, f'❓{question}?\n\nНапишите ответ и нажмите "✅ Отправить ответ"',
                          reply_markup=ClientKeyboards.answer(answers))
+
 
 class ClientCallbacks:
 
@@ -157,11 +158,10 @@ class ClientCallbacks:
     def call_blog(call, bot):
         pass
 
-
     @staticmethod
     def call_change_answer(call, bot):
         bot.delete_message(call.message.chat.id, call.message.id)
-        bot.set_state(call.from_user.id, MyStates.answer_to_question, call.from_user.id)
+        bot.set_state(call.from_user.id, GeneralStates.answer_to_question, call.from_user.id)
         question_id = redis_cache.get_question_id(call.from_user.id)
         question, answers = get_question_and_answers_from_db(question_id)
         bot.send_message(call.message.chat.id, f'❓{question}?\n\nНапишите ответ и нажмите "✅ Отправить ответ"',
@@ -224,16 +224,16 @@ class ClientCallbacks:
 
     @staticmethod
     def call_back_to_questions(call, bot):
-        path = redis_cache.get_keyboard_for_questions(call.from_user.id)
+        directory, sub_direction, section = redis_cache.get_directory_subdir_section(call.from_user.id)
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text=TEXT_MESSAGES['menu'],
-                              reply_markup=ClientKeyboards.questions(call.from_user.id, path))
+                              reply_markup=GeneralKeyboards.questions(call.from_user.id, directory, sub_direction, section))
 
     @staticmethod
     def call_generation_technical_exercise(call, bot):
         logger.info(f'Формирование и отправка файла')
         client_id = call.from_user.id
-        directory, section = CallDataParser.get_directory_sub_direction_section(call.data)
+        directory, section = Parser.get_directory_sub_direction_section(call.data)
         all_emoji = ['🎲', '🎯', '🏀', '⚽', '🎳', '🎰']
         bot.send_dice(client_id, emoji=random.choice(all_emoji), timeout=5)
         bot.send_chat_action(client_id, action="upload_document", timeout=3)
@@ -266,11 +266,11 @@ class ClientCallbacks:
     def call_get_file(call, bot):
         bot.delete_message(call.message.chat.id, call.message.id)
         client_id = call.from_user.id
-        key_for_path = CallDataParser.get_key_for_path(call.data)
+        key_for_path = Parser.get_key_for_path(call.data)
         path_to_file = redis_cache.get_path_for_download_file_by_key(client_id, key_for_path)
         logger.info(f'Клиент {client_id} запросил файл: {path_to_file}')
         user_data = get_users_data(client_id)
-        file_type = CallDataParser.get_file_type(path_to_file)
+        file_type = Parser.get_file_type(path_to_file)
         GeneralCallbacks.send_document_to_telegram(bot, client_id, path_to_file, caption="Ваш файл",
                                                    visible_file_name=f'{user_data["company"]}.{file_type}')
 
@@ -380,11 +380,11 @@ class OperatorCallbacks:
 
     @staticmethod
     def __get_file_path_caption_and_filename(call, client_id):
-        key_for_path = CallDataParser.get_key_for_path(call.data)
+        key_for_path = Parser.get_key_for_path(call.data)
         path_to_file = redis_cache.get_path_for_download_file_by_key(client_id, key_for_path)
         logger.info(f'Оператор {call.from_user.id} запросил файл клиента: {path_to_file}')
         user_data = get_users_data(client_id)
-        file_type = CallDataParser.get_file_type(path_to_file)
+        file_type = Parser.get_file_type(path_to_file)
         caption = f"Файл пользователя:\n{user_data['name']}\n" \
                   f"Username: {user_data['tg_username']}\n" \
                   f"Компания: {user_data['company']}\n" \
@@ -434,14 +434,14 @@ class OperatorCallbacks:
 
     @staticmethod
     def call_back_to_questions(call, bot):
-        path = redis_cache.get_keyboard_for_questions(call.from_user.id)
+        directory, sub_direction, section = redis_cache.get_directory_subdir_section(call.from_user.id)
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text=TEXT_MESSAGES['menu'],
-                              reply_markup=OperatorKeyboards.questions(call.from_user.id, path))
+                              reply_markup=OperatorKeyboards.questions(directory, sub_direction, section))
 
     @staticmethod
     def call_get_dialogue_history(call, bot):
-        client_id = CallDataParser.get_client_id(call.data)
+        client_id = Parser.get_client_id(call.data)
         path_to_dialogue_file = f'{DIR_FOR_SAVE_DIALOGS}/{client_id}/dialogue.log'
         if file_check(path_to_dialogue_file):
             GeneralCallbacks.send_document_to_telegram(bot, call.from_user.id, path_to_dialogue_file,
@@ -452,7 +452,7 @@ class OperatorCallbacks:
 
     @staticmethod
     def call_file_types(call, bot):
-        client_id = CallDataParser.get_client_id(call.data)
+        client_id = Parser.get_client_id(call.data)
         bot.edit_message_text(chat_id=call.message.chat.id,
                               message_id=call.message.message_id, text='Выберите раздел',
                               reply_markup=OperatorKeyboards.types_documents(client_id))
@@ -508,22 +508,22 @@ class OperatorCallbacks:
 
     @staticmethod
     def call_client_technical_tasks(call, bot):
-        client_id = CallDataParser.get_client_id(call.data)
+        client_id = Parser.get_client_id(call.data)
         OperatorCallbacks.__show_client_files(call, bot, DIR_FOR_TECHNICAL_TASKS, client_id)
 
     @staticmethod
     def call_client_commercial_offers(call, bot):
-        client_id = CallDataParser.get_client_id(call.data)
+        client_id = Parser.get_client_id(call.data)
         OperatorCallbacks.__show_client_files(call, bot, DIR_FOR_COMMERCIAL_OFFERS, client_id)
 
     @staticmethod
     def call_client_reports(call, bot):
-        client_id = CallDataParser.get_client_id(call.data)
+        client_id = Parser.get_client_id(call.data)
         OperatorCallbacks.__show_client_files(call, bot, DIR_FOR_REPORTS, client_id)
 
     @staticmethod
     def call_client_other_documents(call, bot):
-        client_id = CallDataParser.get_client_id(call.data)
+        client_id = Parser.get_client_id(call.data)
         OperatorCallbacks.__show_client_files(call, bot, DIR_FOR_OTHER_FILES, client_id)
 
     @staticmethod
@@ -537,10 +537,10 @@ class OperatorCallbacks:
         directory = redis_cache.get_selected_directory(call.from_user.id)
         logger.info(f'Выбрана директория для загрузки файла: {directory}')
         dir_to_state = {
-            DIR_FOR_TECHNICAL_TASKS: MyStates.get_technical_task_file_in_dialogue,
-            DIR_FOR_COMMERCIAL_OFFERS: MyStates.get_commercial_offer_file_in_dialogue,
-            DIR_FOR_REPORTS: MyStates.get_report_file_in_dialogue,
-            DIR_FOR_OTHER_FILES: MyStates.get_other_file_in_dialogue
+            DIR_FOR_TECHNICAL_TASKS: OperatorStates.get_technical_task_file_in_dialogue,
+            DIR_FOR_COMMERCIAL_OFFERS: OperatorStates.get_commercial_offer_file_in_dialogue,
+            DIR_FOR_REPORTS: OperatorStates.get_report_file_in_dialogue,
+            DIR_FOR_OTHER_FILES: OperatorStates.get_other_file_in_dialogue
         }
         message = 'Отправьте файл'
         state = dir_to_state.get(directory)
@@ -552,10 +552,10 @@ class OperatorCallbacks:
         directory = redis_cache.get_selected_directory(call.from_user.id)
         logger.info(f'Выбрана директория для загрузки файла: {directory}')
         dir_to_state = {
-            DIR_FOR_TECHNICAL_TASKS: MyStates.get_technical_task_file,
-            DIR_FOR_COMMERCIAL_OFFERS: MyStates.get_commercial_offer_file,
-            DIR_FOR_REPORTS: MyStates.get_report_file,
-            DIR_FOR_OTHER_FILES: MyStates.get_other_file
+            DIR_FOR_TECHNICAL_TASKS: GeneralStates.get_technical_task_file,
+            DIR_FOR_COMMERCIAL_OFFERS: GeneralStates.get_commercial_offer_file,
+            DIR_FOR_REPORTS: GeneralStates.get_report_file,
+            DIR_FOR_OTHER_FILES: GeneralStates.get_other_file
         }
         message = 'Отправьте файл'
         state = dir_to_state.get(directory)
@@ -564,14 +564,14 @@ class OperatorCallbacks:
 
     @staticmethod
     def call_queue(call, bot):
-        client_id = CallDataParser.get_client_id(call.data)
+        client_id = Parser.get_client_id(call.data)
         redis_cache.move_client_to_first_place_in_queue(client_id)
         bot.send_message(call.message.chat.id, 'Вступить в диалог с клиентом ?',
                          reply_markup=OperatorKeyboards.customer_information(client_id))
 
     @staticmethod
     def call_change_question(call, bot):
-        question_id = CallDataParser.get_question_id(call.data)
+        question_id, number_of_question = Parser.get_question_id_and_number(call.data)
         question, default_answers = get_question_and_answers_from_db(question_id)
         if not default_answers:
             default_answers = 'Нет вариантов ответов'
@@ -579,7 +579,7 @@ class OperatorCallbacks:
         bot.add_data(call.from_user.id, question_id_for_change=question_id)
         bot.delete_message(call.message.chat.id, call.message.id)
         bot.send_message(call.message.chat.id, f'Вопрос: {question}?\n\nОтветы:\n{default_answers}\n'
-                                               f'Впишите вопрос и варианты ответов через |\n'
+                                               f'Впишите вопрос и варианты ответов в формате:\n'
                                                f'ВОПРОС || ОТВЕТ1| ОТВЕТ2| ОТВЕТ3\n\n'
                                                f'Пример:\n'
                                                f'Каков рейтинг компании в России || 11| 34| Не знаю',
@@ -587,18 +587,22 @@ class OperatorCallbacks:
 
     @staticmethod
     def call_add_question(call, bot):
-        bot.send_message(call.message.chat.id, 'Введите новое название раздела')
+        bot.set_state(call.from_user.id, OperatorStates.add_question)
+        bot.send_message(call.message.chat.id, f'Впишите вопрос и варианты ответов в формате:\n'
+                                               f'ВОПРОС || ОТВЕТ1| ОТВЕТ2| ОТВЕТ3\n\n'
+                                               f'\tПример:\t\n'
+                                               f'Каков рейтинг компании в России || 11| 34| Не знаю')
 
     # Диалог с клиентом
     @staticmethod
     def call_enter_into_a_dialog(call, bot):
         operator = call.from_user.id
-        client_id = CallDataParser.get_client_id(call.data)
+        client_id = Parser.get_client_id(call.data)
         redis_cache.move_client_to_first_place_in_queue(client_id)
         redis_cache.set_operator_state(b'busy')
         logger.info(f'Оператор вступил в диалог с клиентом {client_id}')
-        bot.set_state(client_id, MyStates.dialogue_with_operator)
-        bot.set_state(operator, MyStates.dialogue_with_client)
+        bot.set_state(client_id, GeneralStates.dialogue_with_operator)
+        bot.set_state(operator, OperatorStates.dialogue_with_client)
         bot.delete_message(call.message.chat.id, call.message.id)
         bot.send_message(client_id, 'Вы вступили в диалог с оператором\n')
         bot.send_message(operator, 'Вы вступили в диалог с клиентом\nНапишите ему:',
@@ -609,7 +613,7 @@ class OperatorCallbacks:
     @staticmethod
     def call_client_info(call, bot):
         operator = call.from_user.id
-        client_id = CallDataParser.get_client_id(call.data)
+        client_id = Parser.get_client_id(call.data)
         bot.send_message(operator, 'Выберите действие',
                          reply_markup=OperatorKeyboards.customer_information(client_id))
 
