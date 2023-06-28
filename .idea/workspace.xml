@@ -5,20 +5,22 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="408f61a6-9975-4ccc-b2f3-90f02b4ce47f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/services/chatgpt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/kwork_telegram_bot_for_KP.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kwork_telegram_bot_for_KP.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/create_db.sql" beforeDir="false" afterPath="$PROJECT_DIR$/create_db.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/db.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/callbacks.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/callbacks.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/commands.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/get_info.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/get_info.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/keyboards.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/handlers/register_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/register_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handlers/send_file.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/handlers/text_messages.py" beforeDir="false" afterPath="$PROJECT_DIR$/handlers/text_messages.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/db_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/db_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/filters.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/filters.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/redis_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/redis_db.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/states.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/states.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/string_parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/string_parser.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -85,7 +87,28 @@
       <recent name="$PROJECT_DIR$/static/documents/img" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.redis_db">
+  <component name="RunManager" selected="Python.main">
+    <configuration name="chatgpt" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="kwork_telegram_bot_for_KP" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/services" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/services/chatgpt.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="db_data" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="kwork_telegram_bot_for_KP" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -99,27 +122,6 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/services/db_data.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="delete" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="kwork_telegram_bot_for_KP" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/delete.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -225,19 +227,19 @@
     </configuration>
     <list>
       <item itemvalue="Python.main" />
+      <item itemvalue="Python.chatgpt" />
       <item itemvalue="Python.string_parser" />
       <item itemvalue="Python.file_handler" />
       <item itemvalue="Python.db_data" />
-      <item itemvalue="Python.delete" />
       <item itemvalue="Python.redis_db" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.redis_db" />
         <item itemvalue="Python.db_data" />
+        <item itemvalue="Python.chatgpt" />
+        <item itemvalue="Python.redis_db" />
         <item itemvalue="Python.string_parser" />
         <item itemvalue="Python.file_handler" />
-        <item itemvalue="Python.delete" />
       </list>
     </recent_temporary>
   </component>

@@ -110,12 +110,8 @@ def registration_states(bot):
     bot.register_message_handler(state=GeneralStates.answer_to_question, callback=get_info.no_next_question,
                                  pass_bot=True,
                                  text=['Следующий вопрос'], in_the_range_of_questions=False)
+
     # USER REGISTRATION
-    bot.register_message_handler(state=GeneralStates.type_of_user, callback=UserRegistration.get_type_of_user,
-                                 pass_bot=True,
-                                 user_type=True)
-    bot.register_message_handler(state=GeneralStates.type_of_user, callback=UserRegistration.user_type_incorrect,
-                                 pass_bot=True, user_type=False)
     bot.register_message_handler(state=GeneralStates.name, callback=UserRegistration.get_user_name, pass_bot=True)
     bot.register_message_handler(state=GeneralStates.phone_number, callback=UserRegistration.get_user_phone,
                                  pass_bot=True,
@@ -128,6 +124,9 @@ def registration_states(bot):
                                  check_phone=False)
     bot.register_message_handler(state=GeneralStates.website, callback=UserRegistration.get_user_website, pass_bot=True)
     bot.register_message_handler(state=GeneralStates.company, callback=UserRegistration.get_user_company, pass_bot=True)
+
+
+    # DIALOGUE WITH OPERATOR
     bot.register_message_handler(state=GeneralStates.request_for_dialogue,
                                  callback=DialogWithOperator.send_request_to_operator,
                                  pass_bot=True)
@@ -142,8 +141,8 @@ def registration_states(bot):
                                  pass_bot=True, send_answer=False)
     bot.register_message_handler(state=GeneralStates.answer_to_question, callback=get_info.send_user_answers_to_db,
                                  pass_bot=True, send_answer=True)
-    # OPERATOR
 
+    # OPERATOR
     bot.register_message_handler(state=OperatorStates.change_question, callback=get_info.operator_change_question,
                                  pass_bot=True, operator=True, check_question=True)
     bot.register_message_handler(state=OperatorStates.change_question, callback=get_info.incorrect_change_question,
@@ -159,6 +158,11 @@ def registration_states(bot):
                                  pass_bot=True, operator=True, check_question=True)
     bot.register_message_handler(state=OperatorStates.add_question, callback=get_info.incorrect_change_question,
                                  pass_bot=True, operator=True, check_question=False)
+
+    # ChatGPT (Блог)
+    bot.register_message_handler(state=GeneralStates.chat_gpt, callback=get_info.get_question_from_user_for_chat_gpt,
+                                 pass_bot=True)
+
 
 
 def registration_games(bot):

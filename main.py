@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from logging.handlers import TimedRotatingFileHandler
 
 import flask
 import colorlog
@@ -24,7 +25,13 @@ formatter = colorlog.ColoredFormatter(
     })
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
-logging.basicConfig(handlers=[console_handler], level=logging.INFO)
+
+
+file_handler = TimedRotatingFileHandler(f'logs/log.log')
+file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(file_formatter)
+
+logging.basicConfig(handlers=[console_handler, file_handler], level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +57,7 @@ finally:
 #             bot.process_new_updates([update])
 #             return ''
 #         else:
+#             logger.error('abort(403)')
 #             flask.abort(403)
 # except Exception as e:
 #     logger.error(e)

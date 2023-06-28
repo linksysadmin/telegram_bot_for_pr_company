@@ -16,20 +16,19 @@ class GeneralCommands:
         logger.info(f'Новый пользователь {user_id} начал общение с ботом')
         state = bot.get_state(user_id)
         if state is not None:
-            if state in ('MyStates:type_of_user', 'MyStates:name', 'MyStates:phone_number', 'MyStates:company'):
+            if state in ('MyStates:name', 'MyStates:phone_number', 'MyStates:company'):
                 if state == 'MyStates:phone_number':
                     remove_keyboard(message, bot, 'Отменено')
-                    bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'], reply_markup=GeneralKeyboards.type_of_user())
-                    bot.set_state(user_id, GeneralStates.type_of_user)
+                    bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'])
+                    bot.set_state(user_id, GeneralStates.name)
                     return
-                bot.set_state(user_id, GeneralStates.type_of_user)
-                bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'],
-                                 reply_markup=GeneralKeyboards.type_of_user())
+                bot.set_state(user_id, GeneralStates.name)
+                bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'])
                 return
             bot.delete_state(message.from_user.id, message.chat.id)
             remove_keyboard(message, bot, 'Отменено')
-        bot.set_state(message.from_user.id, GeneralStates.type_of_user)
-        bot.send_message(message.chat.id, TEXT_MESSAGES['start_unauthorized'], reply_markup=GeneralKeyboards.type_of_user())
+        bot.set_state(message.from_user.id, GeneralStates.name)
+        bot.send_message(message.chat.id, TEXT_MESSAGES['start_unauthorized'])
         logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
     @staticmethod
@@ -109,8 +108,7 @@ class OperatorCommands:
         # bot.send_chat_action(message.from_user.id, action="upload_document")
         # bot.send_contact(message.chat.id, phone_number='+792343242332', first_name='Ваш оператор: Андрей')
         # bot.send_dice(message.from_user.id, emoji='🎰', timeout=4)
-        # bot.send_message(message.from_user.id, "If you think so...")
-        # bot.send_chat_action(message.from_user.id, 'typing')  # show the bot "typing" (max. 5 secs)
+        bot.send_chat_action(message.from_user.id, 'typing')
         help_text = "The following commands are available: \n"
         bot.send_message(message.from_user.id, help_text)  # send the generated help page    time.sleep(3)
 

@@ -1,12 +1,9 @@
 from typing import Any
-import logging
 
 import mysql.connector
 from mysql.connector import errorcode
 
 import config
-
-logger = logging.getLogger(__name__)
 
 
 def connect_to_db() -> mysql.connector:
@@ -17,7 +14,6 @@ def connect_to_db() -> mysql.connector:
             password=config.MySQL_PASS,
             database=config.MySQL_DB
         )
-        logger.info('Successful database connection')
         return db
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
@@ -53,7 +49,3 @@ def fetch_all(sql: str, params: Any | None = None) -> list[tuple]:
         for row in rows:
             results.append(row)
         return results
-
-
-if __name__ == '__main__':
-    pass

@@ -2,7 +2,6 @@ from telebot.handler_backends import State, StatesGroup
 
 
 class GeneralStates(StatesGroup):
-    type_of_user = State()
     name = State()
     phone_number = State()
     company = State()
@@ -14,6 +13,7 @@ class GeneralStates(StatesGroup):
     get_report_file = State()
     get_other_file = State()
     answer_to_question = State()
+    chat_gpt = State()
 
 
 class OperatorStates(StatesGroup):

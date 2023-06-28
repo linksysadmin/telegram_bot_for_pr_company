@@ -4,8 +4,10 @@ from config import DIR_FOR_COMMERCIAL_OFFERS, DIR_FOR_REPORTS, DIR_FOR_OTHER_FIL
 from handlers.commands import ClientCommands
 from handlers.keyboards import remove_keyboard, ClientKeyboards, OperatorKeyboards, GeneralKeyboards
 from handlers.text_messages import TEXT_MESSAGES
-from services.db_data import add_clients_data_to_db, add_user_answers_to_db, \
-    get_user_answer, update_question_and_answers, get_users_data, add_question_and_answers_, get_question_data_by_path
+from services.chatgpt import generate_response_from_chat_gpt
+from services.db_data import add_user_answers_to_db, \
+    get_user_answer, update_question_and_answers, get_users_data, add_question_and_answers_, get_question_data_by_path, \
+    add_user_data_to_db
 from services.file_handler import save_file, dialogue_logging
 from services.redis_db import redis_cache
 from services.states import GeneralStates, OperatorStates
@@ -15,16 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class UserRegistration:
-    __USER_TYPE_MAP = {
-        'Партнер': 'partners',
-        'Клиент': 'clients',
-    }
-
-    @staticmethod
-    def get_type_of_user(message, bot):
-        bot.add_data(message.from_user.id, message.chat.id, type_of_user=UserRegistration.__USER_TYPE_MAP[message.text])
-        remove_keyboard(message, bot, 'Отлично! Введите ваше имя:')
-        bot.set_state(message.chat.id, GeneralStates.name, message.from_user.id)
 
     @staticmethod
     def get_user_name(message, bot):
@@ -62,21 +54,16 @@ class UserRegistration:
         company = message.text
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             logger.info(f'Данные, которые ввел пользователь: {data}')
-            table = data['type_of_user']
             name = data['name']
             tg_username = data['tg_username']
             phone = data['phone']
             website = data['website']
-            add_clients_data_to_db(table, user_id, name, tg_username, phone, company, website)
+            add_user_data_to_db('clients', user_id, name, tg_username, phone, company, website)
         bot.delete_state(message.from_user.id, message.chat.id)
         bot.send_message(message.chat.id, TEXT_MESSAGES['start'].format(username=name,
                                                                         company=message.text),
                          reply_markup=GeneralKeyboards.enter_menu())
         logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
-
-    @staticmethod
-    def user_type_incorrect(message, bot):
-        bot.send_message(message.chat.id, 'Выберите тип пользователя из предложенных вариантов.')
 
     @staticmethod
     def phone_incorrect(message, bot):
@@ -85,6 +72,14 @@ class UserRegistration:
 
 
 
+
+def get_question_from_user_for_chat_gpt(message, bot):
+    # bot.delete_state(message.from_user.id, message.chat.id)
+    user_id = message.from_user.id
+    text = message.text
+    bot.send_chat_action(user_id, action="typing")
+    answer_from_chat_gpt = generate_response_from_chat_gpt(text)
+    bot.send_message(user_id, answer_from_chat_gpt)
 
 
 def get_answer_from_user(message, bot):
@@ -108,8 +103,6 @@ def next_question(message, bot):
     user_id = message.from_user.id
     directory, sub_direction, section = redis_cache.get_directory_subdir_section(message.from_user.id)
     question_id, number = redis_cache.get_id_and_number_of_question(user_id)
-
-
     question_data = get_question_data_by_path(directory, sub_direction, section, number)
     text = question_data['question_text']
     id_ = question_data['id']

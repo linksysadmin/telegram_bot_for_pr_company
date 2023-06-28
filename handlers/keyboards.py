@@ -5,7 +5,6 @@ from telebot import types
 from services.db_data import get_directories, \
     get_sections_from_db, get_question_id_and_number, get_questions_id_from_user_answers, \
     get_users_data
-from services.redis_db import redis_cache
 from services.string_parser import Parser
 
 logger = logging.getLogger(__name__)
@@ -33,14 +32,6 @@ class GeneralKeyboards:
     data_gravityninjaemeraldcity = 'gravityninjaemeraldcity'
     data_keepitup = 'keepitup'
 
-
-    @staticmethod
-    def type_of_user():
-        keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-        keyboard.add(types.KeyboardButton(text="Клиент"))
-        keyboard.add(types.KeyboardButton(text="Партнер"))
-        return keyboard
-
     @staticmethod
     def enter_menu(doc=False):
         """Keyboard for main menu"""
@@ -51,12 +42,13 @@ class GeneralKeyboards:
                                           callback_data=GeneralKeyboards.data_files)
         key4 = types.InlineKeyboardButton(text='🎲 Игры', callback_data=GeneralKeyboards.data_games)
         key5 = types.InlineKeyboardButton(text='👨‍💻 Написать оператору', callback_data=GeneralKeyboards.data_chat)
-        # key = types.InlineKeyboardButton(text='🤳 Блог', callback_data=GeneralKeyboards.data_blog)
+        key6 = types.InlineKeyboardButton(text='GPT', callback_data=GeneralKeyboards.data_blog)
         keyboard.add(key1)
         if doc is True:
             keyboard.add(key3)
         keyboard.row(key2, key4)
         keyboard.add(key5)
+        keyboard.add(key6)
         return keyboard
 
     @staticmethod
@@ -144,6 +136,14 @@ class GeneralKeyboards:
         keyboard.row(game4, game5, game6)
         keyboard.row(game7, main_menu)
         return keyboard
+
+    @staticmethod
+    def blog() -> types.InlineKeyboardMarkup:
+        keyboard = types.InlineKeyboardMarkup()
+        cancel = types.InlineKeyboardButton(text='Назад', callback_data=GeneralKeyboards.data_enter_menu)
+        keyboard.add(cancel)
+        return keyboard
+
 
 
 class ClientKeyboards:
@@ -408,7 +408,7 @@ class OperatorKeyboards:
         return keyboard
 
 
-class PartnerKeyboards(GeneralKeyboards):
+class PartnerKeyboards:
     @staticmethod
     def enter_menu(doc: bool = False):
         """Keyboard for main menu for partner"""
@@ -419,12 +419,12 @@ class PartnerKeyboards(GeneralKeyboards):
                                           callback_data=GeneralKeyboards.data_files)
         key4 = types.InlineKeyboardButton(text='🎲 Игры', callback_data=GeneralKeyboards.data_games)
         key5 = types.InlineKeyboardButton(text='👨‍💻 Написать оператору', callback_data=GeneralKeyboards.data_chat)
-        # key = types.InlineKeyboardButton(text='🤳 Блог', callback_data=Callbacks.blog)
+        key6 = types.InlineKeyboardButton(text='GPT', callback_data=GeneralKeyboards.blog)
         keyboard.add(key1)
         if doc is True:
             keyboard.add(key3)
         keyboard.row(key2, key4)
-        keyboard.add(key5)
+        keyboard.add(key5, key6)
         return keyboard
 
 

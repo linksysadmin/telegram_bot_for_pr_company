@@ -25,11 +25,15 @@ class GeneralCallbacks:
 
     @staticmethod
     def send_document_to_telegram(bot, addressee_id: int, document_path, caption, visible_file_name):
-        with open(document_path, 'rb') as file:
-            bot.send_document(chat_id=addressee_id, document=file,
-                              caption=caption,
-                              disable_content_type_detection=True,
-                              visible_file_name=visible_file_name)
+        try:
+            with open(document_path, 'rb') as file:
+                bot.send_document(chat_id=addressee_id, document=file,
+                                  caption=caption,
+                                  disable_content_type_detection=True,
+                                  visible_file_name=visible_file_name)
+            logger.info(f'Файл удачно отправлен пользователю: {addressee_id}')
+        except Exception as e:
+            logger.error(f'Неудачная отправка файла пользователю: {addressee_id}. Ошибка: {e}')
 
     @staticmethod
     def call_enter_menu(call, bot):
@@ -156,7 +160,13 @@ class ClientCallbacks:
 
     @staticmethod
     def call_blog(call, bot):
-        pass
+        user_id = call.from_user.id
+        bot.send_message(call.message.chat.id, 'Напишите ваш вопрос и мы постараемся сразу ответить на него 😉\n\n'
+                                               '/cancel - Выход из блога')
+        bot.set_state(user_id, GeneralStates.chat_gpt)
+
+
+
 
     @staticmethod
     def call_change_answer(call, bot):

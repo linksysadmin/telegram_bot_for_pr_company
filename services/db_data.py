@@ -249,8 +249,8 @@ def get_question_and_answers_from_db(id_question: int) -> tuple:
 
 
 def get_question_data_by_path(directory: str, sub_direction: str | None, section: str, number_of_question: int) -> Dict:
-    sql_query = 'SELECT question_text, answer FROM questions WHERE direction = %s AND sub_direction = %s AND section_name = %s AND question_number = %s'
-    params = (directory, sub_direction, section, number_of_question,)
+    sql_query = 'SELECT id, question_text, answer FROM questions WHERE direction = %s AND sub_direction = %s AND section_name = %s AND question_number = %s'
+    params = (directory, sub_direction, section, number_of_question)
     if sub_direction is None:
         sql_query = 'SELECT id, question_text, answer FROM questions WHERE direction = %s AND sub_direction IS %s AND section_name = %s AND question_number = %s'
     data = fetch_all(sql=sql_query, params=params)
@@ -261,6 +261,9 @@ def get_question_data_by_path(directory: str, sub_direction: str | None, section
     }
     return dict_question_data
 
+
+if __name__ == '__main__':
+    print(get_question_data_by_path('Студия','Дизайн', 'Проект дизайна', 4))
 
 def get_all_ids_in_section(directory: str, sub_direction: str | None, section: str) -> Dict:
     sql_query = 'SELECT id, question_number FROM questions WHERE direction = %s AND sub_direction = %s AND section_name = %s'
@@ -307,7 +310,7 @@ def add_question_and_answers_(direction: str, sub_direction: str | None, section
     redis_cache.clear_redis_key('data_questions:all')
 
 
-def add_clients_data_to_db(table: str, user_id: int, name: str, tg_username, phone: str, company: str, website: str):
+def add_user_data_to_db(table: str, user_id: int, name: str, tg_username, phone: str, company: str, website: str):
     try:
         execute(
             sql='''INSERT INTO {} (id, name, tg_username, phone, company, website)
