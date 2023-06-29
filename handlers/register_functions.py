@@ -1,7 +1,7 @@
 from handlers.commands import ClientCommands, OperatorCommands, GeneralCommands, PartnerCommands
-from handlers import get_info
 from handlers.callbacks import ClientCallbacks, OperatorCallbacks, GamesCallbacks, GeneralCallbacks
-from handlers.get_info import UserRegistration, DialogWithOperator
+from handlers.information_handlers import UserRegistration, DialogWithOperator, TextButtons, ChatGPT, FileHandler, \
+    AnswerHandler, QuestionHandler
 from handlers.keyboards import GeneralKeyboards, ClientKeyboards, OperatorKeyboards
 from services.filters import CheckPhoneNumber, ContactForm, CheckConsent, CheckFile, CheckClient, \
     CheckSubDirectory, CheckSection, SendAnswer, CheckOperator, CheckTextOnlyInMessage, \
@@ -52,62 +52,62 @@ def registration_commands(bot):
 
     # CLIENT
     bot.register_message_handler(commands=['start'], callback=ClientCommands.start, pass_bot=True, client=True)
-    bot.register_message_handler(commands=['cancel'], state="*", callback=GeneralCommands.cancel_to_main_menu, pass_bot=True,
+    bot.register_message_handler(commands=['cancel'], state="*", callback=TextButtons.cancel_to_main_menu, pass_bot=True,
                                  client=True)
     # PARTNER
     bot.register_message_handler(commands=['start'], callback=PartnerCommands.start, pass_bot=True, partner=True)
-    bot.register_message_handler(commands=['cancel'], state="*", callback=GeneralCommands.cancel_to_main_menu, pass_bot=True,
+    bot.register_message_handler(commands=['cancel'], state="*", callback=TextButtons.cancel_to_main_menu, pass_bot=True,
                                  partner=True)
 
 
 def registration_file_handling(bot):
     """  Регистрация функций обработки файлов  """
     bot.register_message_handler(state=GeneralStates.get_technical_task_file,
-                                 callback=get_info.get_technical_task_file, pass_bot=True, document=True)
+                                 callback=FileHandler.get_technical_task_file, pass_bot=True, document=True)
     bot.register_message_handler(state=GeneralStates.get_commercial_offer_file,
-                                 callback=get_info.get_commercial_offer_file, pass_bot=True, document=True)
+                                 callback=FileHandler.get_commercial_offer_file, pass_bot=True, document=True)
     bot.register_message_handler(state=GeneralStates.get_other_file,
-                                 callback=get_info.get_other_file, pass_bot=True, document=True)
+                                 callback=FileHandler.get_other_file, pass_bot=True, document=True)
     bot.register_message_handler(state=GeneralStates.get_report_file,
-                                 callback=get_info.get_report_file, pass_bot=True, document=True)
+                                 callback=FileHandler.get_report_file, pass_bot=True, document=True)
     bot.register_message_handler(state=(GeneralStates.get_technical_task_file, GeneralStates.get_commercial_offer_file,
                                         GeneralStates.get_report_file, GeneralStates.get_other_file,
                                         OperatorStates.get_technical_task_file_in_dialogue,
                                         OperatorStates.get_commercial_offer_file_in_dialogue,
                                         OperatorStates.get_report_file_in_dialogue,
                                         OperatorStates.get_other_file_in_dialogue),
-                                 callback=get_info.file_incorrect, pass_bot=True, document=False)
+                                 callback=FileHandler.file_incorrect, pass_bot=True, document=False)
 
     # OPERATOR
     bot.register_message_handler(state=OperatorStates.get_technical_task_file_in_dialogue,
-                                 callback=get_info.get_technical_task_file_from_dialogue, pass_bot=True, document=True)
+                                 callback=FileHandler.get_technical_task_file_from_dialogue, pass_bot=True, document=True)
     bot.register_message_handler(state=OperatorStates.get_commercial_offer_file_in_dialogue,
-                                 callback=get_info.get_commercial_offer_file_from_dialogue, pass_bot=True,
+                                 callback=FileHandler.get_commercial_offer_file_from_dialogue, pass_bot=True,
                                  document=True)
     bot.register_message_handler(state=OperatorStates.get_report_file_in_dialogue,
-                                 callback=get_info.get_report_file_from_dialogue, pass_bot=True, document=True)
+                                 callback=FileHandler.get_report_file_from_dialogue, pass_bot=True, document=True)
 
     bot.register_message_handler(state=OperatorStates.get_other_file_in_dialogue,
-                                 callback=get_info.get_other_file_from_dialogue, pass_bot=True, document=True)
+                                 callback=FileHandler.get_other_file_from_dialogue, pass_bot=True, document=True)
 
 
 def registration_states(bot):
     """   Регистрация состояний пользователя """
-    bot.register_message_handler(text=['Отменить'], callback=GeneralCommands.cancel_to_start_registration,
+    bot.register_message_handler(text=['Отменить'], callback=TextButtons.cancel_to_start_registration,
                                  pass_bot=True, client=False, operator=False, partner=False)
-    bot.register_message_handler(state="*", text=['Отменить'], callback=GeneralCommands.cancel_to_main_menu, pass_bot=True,
+    bot.register_message_handler(state="*", text=['Отменить'], callback=TextButtons.cancel_to_main_menu, pass_bot=True,
                                  client=True)
-    bot.register_message_handler(state="*", text=['Отменить'], callback=GeneralCommands.cancel_to_main_menu, pass_bot=True,
+    bot.register_message_handler(state="*", text=['Отменить'], callback=TextButtons.cancel_to_main_menu, pass_bot=True,
                                  partner=True)
     bot.register_message_handler(state=GeneralStates.answer_to_question, text=['К вопросам'],
-                                 callback=GeneralCommands.cancel_to_questions, pass_bot=True,
+                                 callback=TextButtons.cancel_to_questions, pass_bot=True,
                                  client=True)
     bot.register_message_handler(state=GeneralStates.answer_to_question, text=['К вопросам'],
-                                 callback=GeneralCommands.cancel_to_questions, pass_bot=True,
+                                 callback=TextButtons.cancel_to_questions, pass_bot=True,
                                  partner=True)
-    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=get_info.next_question, pass_bot=True,
+    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=TextButtons.next_question, pass_bot=True,
                                  text=['Следующий вопрос'], in_the_range_of_questions=True)
-    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=get_info.no_next_question,
+    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=TextButtons.no_next_question,
                                  pass_bot=True,
                                  text=['Следующий вопрос'], in_the_range_of_questions=False)
 
@@ -136,17 +136,10 @@ def registration_states(bot):
                                  callback=DialogWithOperator.send_document_to_operator, pass_bot=True, document=True)
     bot.register_message_handler(state=GeneralStates.dialogue_with_operator,
                                  callback=DialogWithOperator.send_photo_to_operator, pass_bot=True, photo=True)
-
-    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=get_info.get_answer_from_user,
+    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=AnswerHandler.get_answer_from_user,
                                  pass_bot=True, send_answer=False)
-    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=get_info.send_user_answers_to_db,
+    bot.register_message_handler(state=GeneralStates.answer_to_question, callback=AnswerHandler.send_user_answers_to_db,
                                  pass_bot=True, send_answer=True)
-
-    # OPERATOR
-    bot.register_message_handler(state=OperatorStates.change_question, callback=get_info.operator_change_question,
-                                 pass_bot=True, operator=True, check_question=True)
-    bot.register_message_handler(state=OperatorStates.change_question, callback=get_info.incorrect_change_question,
-                                 pass_bot=True, operator=True, check_question=False)
     bot.register_message_handler(state=OperatorStates.dialogue_with_client,
                                  callback=DialogWithOperator.send_message_to_client, pass_bot=True, text_only=True)
     bot.register_message_handler(state=OperatorStates.dialogue_with_client,
@@ -154,13 +147,19 @@ def registration_states(bot):
     bot.register_message_handler(state=OperatorStates.dialogue_with_client,
                                  callback=DialogWithOperator.send_photo_to_client,
                                  pass_bot=True, photo=True)
-    bot.register_message_handler(state=OperatorStates.add_question, callback=get_info.operator_add_question,
+
+    # OPERATOR
+    bot.register_message_handler(state=OperatorStates.change_question, callback=QuestionHandler.operator_change_question,
                                  pass_bot=True, operator=True, check_question=True)
-    bot.register_message_handler(state=OperatorStates.add_question, callback=get_info.incorrect_change_question,
+    bot.register_message_handler(state=OperatorStates.change_question, callback=QuestionHandler.incorrect_change_question,
+                                 pass_bot=True, operator=True, check_question=False)
+    bot.register_message_handler(state=OperatorStates.add_question, callback=QuestionHandler.operator_add_question,
+                                 pass_bot=True, operator=True, check_question=True)
+    bot.register_message_handler(state=OperatorStates.add_question, callback=QuestionHandler.incorrect_change_question,
                                  pass_bot=True, operator=True, check_question=False)
 
     # ChatGPT (Блог)
-    bot.register_message_handler(state=GeneralStates.chat_gpt, callback=get_info.get_question_from_user_for_chat_gpt,
+    bot.register_message_handler(state=GeneralStates.chat_gpt, callback=ChatGPT.get_question_from_user_for_chat_gpt,
                                  pass_bot=True)
 
 

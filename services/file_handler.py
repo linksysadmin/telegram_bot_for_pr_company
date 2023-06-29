@@ -9,28 +9,15 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
-def dialogue_logging(client_id):
-    log_dialogue_in_file = logging.getLogger(f'logger_for_dialogue_{client_id}')
-    if not log_dialogue_in_file.handlers:
-        log_dir = f'{DIR_FOR_SAVE_DIALOGS}/{client_id}'
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        file_handler = logging.FileHandler(f'{DIR_FOR_SAVE_DIALOGS}/{client_id}/dialogue.log')
-        formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-        file_handler.setFormatter(formatter)
-        log_dialogue_in_file.addHandler(file_handler)
-        log_dialogue_in_file.setLevel(logging.INFO)
-        log_dialogue_in_file.propagate = False
-    return log_dialogue_in_file
-
-
 def find_files(abs_path_to_directory: str) -> list:
     try:
         return os.listdir(abs_path_to_directory)
     except FileNotFoundError:
-        logger.warning(f"Файлы не найдены")
+        logger.info(f"Файлы не найдены")
+        return []
     except NotADirectoryError:
-        logger.error(f"Не директория: {abs_path_to_directory}")
+        logger.error(f"Запрос не директории: {abs_path_to_directory}")
+        raise NotADirectoryError
 
 
 def file_check(abs_path_to_file) -> bool:

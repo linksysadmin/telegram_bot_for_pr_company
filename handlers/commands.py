@@ -31,35 +31,6 @@ class GeneralCommands:
         bot.send_message(message.chat.id, TEXT_MESSAGES['start_unauthorized'])
         logger.info(f'Состояние пользователя - {bot.get_state(message.from_user.id, message.chat.id)}')
 
-    @staticmethod
-    def cancel_to_main_menu(message, bot):
-        user_id = message.from_user.id
-        remove_keyboard(message, bot, 'Отменено')
-        bot.send_message(message.chat.id, 'Главное меню', reply_markup=GeneralKeyboards.enter_menu())
-        bot.delete_state(user_id)
-
-
-    @staticmethod
-    def cancel_to_questions(message, bot):
-        """ Выход из STATE """
-        user_id = message.from_user.id
-        bot.delete_state(user_id)
-        if redis_cache.get_user_answers(user=user_id):
-            redis_cache.delete_user_answers(user=user_id)
-        directory, sub_direction, section = redis_cache.get_directory_subdir_section(user_id)
-        remove_keyboard(message, bot, 'Отменено')
-        bot.send_message(user_id, 'Выберите вопрос:',
-                         reply_markup=GeneralKeyboards.questions(user_id, directory, sub_direction, section))
-
-    @staticmethod
-    def cancel_to_start_registration(message, bot):
-        print('1')
-        user_id = message.from_user.id
-        state = bot.get_state(user_id)
-        if state == 'GeneralStates:phone_number':
-            remove_keyboard(message, bot, 'Отменено')
-        bot.set_state(user_id, GeneralStates.name)
-        bot.send_message(user_id, TEXT_MESSAGES['start_unauthorized'])
 
 
 
