@@ -9,8 +9,7 @@ class Parser:
     def parse_callback(data: str):
         try:
             list_of_callback_parts = data.split('|')
-            len_string_path = len(list_of_callback_parts)
-            if len_string_path == 3 or len_string_path == 4:
+            if len(list_of_callback_parts) == 3 or len(list_of_callback_parts) == 4:
                 if list_of_callback_parts[0] == 'tex':
                     return 'tex|'
                 elif list_of_callback_parts[0] == 'question':

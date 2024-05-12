@@ -39,7 +39,7 @@ class RedisCache:
 
     def get_first_client_from_queue(self):
         try:
-            return int(self.redis.lindex('queue', 0))  # вернуть первый элемент списка
+            return int(self.redis.lindex('queue', 0))
         except Exception:
             logger.warning(f'В очереди никого нет')
             return None
@@ -77,7 +77,7 @@ class RedisCache:
     # Получаем следующего клиента из списка ожидающих
     def get_first_client_and_delete_from_queue(self):
         try:
-            return int(self.redis.lpop('queue'))  # Удаляет и возвращает первый элемент списка, сохраненного в key.
+            return int(self.redis.lpop('queue'))
         except TypeError:
             return None
 

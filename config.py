@@ -1,6 +1,7 @@
 import os
 
-
+import telebot
+from telebot.storage import StateRedisStorage
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -26,4 +27,17 @@ DIR_FOR_COMMERCIAL_OFFERS = f'{BASE_DIR}/static/documents/commercial_offers'
 DIR_FOR_REPORTS = f'{BASE_DIR}/static/documents/reports'
 DIR_FOR_OTHER_FILES = f'{BASE_DIR}/static/documents/other_documents'
 DIR_FOR_SAVE_DIALOGS = f'{BASE_DIR}/static/documents/dialogs'
+
+bot = telebot.TeleBot(TELEGRAM_BOT_API_TOKEN, state_storage=StateRedisStorage(), parse_mode='HTML')
+
+
+
+
+
+
+
+
+
+
+
 

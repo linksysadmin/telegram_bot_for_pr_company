@@ -3,9 +3,8 @@ import re
 
 import telebot
 
-from config import OPERATOR_ID
-from services.db_data import get_data_questions, check_client_in_database, check_partner_in_database, \
-    get_all_ids_in_section
+from config import OPERATOR_ID, bot
+from services.db_data import db
 from services.redis_db import redis_cache
 
 logger = logging.getLogger(__name__)
@@ -15,7 +14,7 @@ class CheckSubDirectory(telebot.custom_filters.SimpleCustomFilter):
     key = 'sub_directory'
 
     def check(self, call):
-        if call.data in set(f'{i[1]}|{i[2]}' for i in get_data_questions() if i[2] is not None):
+        if call.data in set(f'{i[1]}|{i[2]}' for i in db.get_data_questions() if i[2] is not None):
             return True
         else:
             return False
@@ -25,7 +24,7 @@ class CheckSection(telebot.custom_filters.SimpleCustomFilter):
     key = 'section'
 
     def check(self, call):
-        data_questions = get_data_questions()
+        data_questions = db.get_data_questions()
         if call.data in set(f'{i[1]}|{i[2]}|{i[3]}' for i in data_questions if i[2] is not None) \
                 or call.data in set(f'{i[1]}|{i[3]}' for i in data_questions if i[2] is None):
             return True
@@ -37,7 +36,7 @@ class CheckClient(telebot.custom_filters.SimpleCustomFilter):
     key = 'client'
 
     def check(self, call):
-        if check_client_in_database(call.from_user.id):
+        if db.check_client_in_database(call.from_user.id):
             return True
         else:
             return False
@@ -47,7 +46,7 @@ class CheckPartner(telebot.custom_filters.SimpleCustomFilter):
     key = 'partner'
 
     def check(self, call):
-        if check_partner_in_database(call.from_user.id):
+        if db.check_partner_in_database(call.from_user.id):
             return True
         else:
             return False
@@ -141,7 +140,7 @@ class CheckQuestionNumber(telebot.custom_filters.SimpleCustomFilter):
 
         next_number_of_question = number + 1
 
-        dict_of_numbers_and_ids_questions = get_all_ids_in_section(directory, sub_direction, section)
+        dict_of_numbers_and_ids_questions = db.get_all_ids_in_section(directory, sub_direction, section)
         next_question_id = dict_of_numbers_and_ids_questions.get(next_number_of_question)
 
         if next_number_of_question in dict_of_numbers_and_ids_questions:
@@ -194,3 +193,34 @@ class CheckAddQuestion(telebot.custom_filters.SimpleCustomFilter):
             return True
         else:
             return False
+
+
+
+
+def register_filters():
+    """   Добавление фильтров """
+    from telebot import custom_filters
+    FILTERS = (custom_filters.StateFilter(bot),
+               custom_filters.IsDigitFilter(),
+               custom_filters.TextMatchFilter(),
+               CheckPhoneNumber(),
+               ContactForm(),
+               CheckConsent(),
+               CheckFile(),
+               CheckClient(),
+               CheckPartner(),
+               UserType(),
+               CheckOperator(),
+               CheckSubDirectory(),
+               CheckSection(),
+               SendAnswer(),
+               CheckTextOnlyInMessage(),
+               CheckDocumentInMessage(),
+               CheckPhotoInMessage(),
+               CheckChangeQuestion(),
+               CheckAddQuestion(),
+               CheckQuestionNumber(),
+               )
+
+    for filter_ in FILTERS:
+        bot.add_custom_filter(filter_)

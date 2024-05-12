@@ -8,3 +8,5 @@ static/conf.info
 static/documents/*
 help.md
 /logs/*
+/.venv/
+

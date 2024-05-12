@@ -4,18 +4,15 @@ from logging.handlers import TimedRotatingFileHandler
 
 import flask
 import colorlog
-import telebot
 
-from telebot.storage import StateRedisStorage
-
-from handlers.register_functions import registration_all_functions_for_telegram_bot
-from config import TELEGRAM_BOT_API_TOKEN
+from handlers.register import RegisterTelegramFunctions
+from config import bot
 
 from services.redis_db import redis_cache
 
 formatter = colorlog.ColoredFormatter(
     '%(log_color)s%(name)s %(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%m.%d.%Y %H:%M:%S',
+    datefmt='%m.%d.%Y',
     log_colors={
         'DEBUG': 'cyan',
         'INFO': 'green',
@@ -25,19 +22,15 @@ formatter = colorlog.ColoredFormatter(
     })
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
-
-
 file_handler = TimedRotatingFileHandler(f'logs/log.log')
 file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 file_handler.setFormatter(file_formatter)
-
 logging.basicConfig(handlers=[console_handler, file_handler], level=logging.INFO)
-
 logger = logging.getLogger(__name__)
 
-bot = telebot.TeleBot(TELEGRAM_BOT_API_TOKEN, state_storage=StateRedisStorage(), parse_mode='HTML')
 
-registration_all_functions_for_telegram_bot(bot)
+RegisterTelegramFunctions()
+
 
 try:
     bot.infinity_polling(skip_pending=True)
