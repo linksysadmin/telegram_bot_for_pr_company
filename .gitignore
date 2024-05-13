@@ -5,7 +5,7 @@ __pycache__
 database.db
 
 static/conf.info
-static/documents/*
+static/documents/dialogs
 help.md
 /logs/*
 /.venv/

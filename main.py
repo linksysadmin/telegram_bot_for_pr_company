@@ -2,6 +2,7 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
+import telebot
 import flask
 import colorlog
 
@@ -22,7 +23,7 @@ formatter = colorlog.ColoredFormatter(
     })
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
-file_handler = TimedRotatingFileHandler(f'logs/log.log')
+file_handler = TimedRotatingFileHandler(f'log.log')
 file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 file_handler.setFormatter(file_formatter)
 logging.basicConfig(handlers=[console_handler, file_handler], level=logging.INFO)
@@ -39,21 +40,21 @@ except KeyboardInterrupt:
 finally:
     redis_cache.clear_all_cache()
 
-# try:
-#     app = flask.Flask(__name__)
-#     @app.route('/', methods=['POST'])
-#     def webhook():
-#         """Обработка http-запросов, которые telegram пересылает на наш сервер"""
-#         if flask.request.headers.get('content-type') == 'application/json':
-#             json_string = flask.request.get_data().decode('utf-8')
-#             update = telebot.types.Update.de_json(json_string)
-#             bot.process_new_updates([update])
-#             return ''
-#         else:
-#             logger.error('abort(403)')
-#             flask.abort(403)
-# except Exception as e:
-#     logger.error(e)
-# finally:
-#     redis_cache.clear_all_cache()
+try:
+    app = flask.Flask(__name__)
+    @app.route('/', methods=['POST'])
+    def webhook():
+        """Обработка http-запросов, которые telegram пересылает на наш сервер"""
+        if flask.request.headers.get('content-type') == 'application/json':
+            json_string = flask.request.get_data().decode('utf-8')
+            update = telebot.types.Update.de_json(json_string)
+            bot.process_new_updates([update])
+            return ''
+        else:
+            logger.error('abort(403)')
+            flask.abort(403)
+except Exception as e:
+    logger.error(e)
+finally:
+    redis_cache.clear_all_cache()
 #
